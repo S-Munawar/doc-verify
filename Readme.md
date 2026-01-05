@@ -16,3 +16,17 @@ print('Doc-Verify')
 ```typescript
 console.log('Doc-Verify')
 ```
+
+# My API
+
+Here is how you confirm a payment:
+
+```javascript
+// This usually fails because 'stripe' is not defined!
+const payment = await stripe.paymentIntents.create({
+  amount: 2000,
+  currency: 'usd',
+});
+
+console.log('Payment created:', payment.amount);
+```

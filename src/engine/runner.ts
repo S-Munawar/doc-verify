@@ -30,8 +30,7 @@ export async function runner(code: string, language: string): Promise<RunResult>
         case 'typescript':
             IMAGE = 'denoland/deno:latest';
             INPUT_FILE = 'script.ts';
-            EXEC_CMD = `deno run --allow-all
-             ${INPUT_FILE}`;
+            EXEC_CMD = `deno run --allow-all ${INPUT_FILE}`;
             break;
         case 'python':
         case 'py':
@@ -44,28 +43,6 @@ export async function runner(code: string, language: string): Promise<RunResult>
             IMAGE = 'golang:1.20-alpine';
             INPUT_FILE = 'main.go';
             EXEC_CMD = `go run ${INPUT_FILE}`;
-            break;
-        case 'ruby':
-        case 'rb':
-            IMAGE = 'ruby:3.1-alpine';
-            INPUT_FILE = 'script.rb';
-            EXEC_CMD = `ruby ${INPUT_FILE}`;
-            break;
-        case 'java':
-            IMAGE = 'openjdk:17-alpine';
-            INPUT_FILE = 'App.java';
-            EXEC_CMD = `sh -c "javac ${INPUT_FILE} && java App"`;
-            break;
-        case 'php':
-            IMAGE = 'php:8.1-cli-alpine';
-            INPUT_FILE = 'script.php';
-            EXEC_CMD = `php ${INPUT_FILE}`;
-            break;
-        case 'bash':
-        case 'sh':
-            IMAGE = 'alpine:latest';
-            INPUT_FILE = 'script.sh';
-            EXEC_CMD = `sh ${INPUT_FILE}`;
             break;
         default:
             return { success: false, output: '', error: `Unsupported language: ${language}` };
@@ -91,6 +68,7 @@ export async function runner(code: string, language: string): Promise<RunResult>
             outputStream,
             {
                 Tty: false, // Turn off TTY for easier output capture.
+                Entrypoint: [], // Override entrypoint for images like Deno that have custom entrypoints
                 HostConfig: {
                     AutoRemove: true, // Delete container after finish
                     Memory: 128 * 1024 * 1024, // Limit to 128MB RAM

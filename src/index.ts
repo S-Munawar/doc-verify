@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import dotenv from 'dotenv';
 import { extractSnippets } from './parser/extracts.js';
 import { runner } from './engine/runner.js';
+import { repairSnippet } from './ai/repair.js'; // Import the AI Agent
 
 dotenv.config();
 
@@ -48,8 +49,12 @@ program
         for (const [index, snippet] of targetSnippets.entries()) {
             console.log(chalk.white.bold(`--- Running Snippet #${index + 1} (Line ${snippet.line}) [${snippet.language}] ---`));
             
+            console.log(chalk.yellow('🤖 AI Repairing...'));
+            const executableCode = await repairSnippet(snippet.code, snippet.language);
+
             // EXECUTE HERE
-            const result = await runner(snippet.code, snippet.language);
+            console.log(chalk.blue('⚡ Executing...'));
+            const result = await runner(executableCode, snippet.language);
 
             if (result.success) {
                 console.log(chalk.green('PASS ✅'));
