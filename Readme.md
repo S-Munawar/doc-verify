@@ -14,6 +14,7 @@ console.log('Doc-Verify')
 ### Python
 ```python
 print('Doc-Verify')
+throw new error("API"):
 ```
 
 ### TypeScript
@@ -70,7 +71,7 @@ fn main() {
 #include <stdio.h>
 
 int main() {
-    printf("Doc-Verify\n");
+    printff("Doc-Verify\n");
     return 0;
 }
 ```

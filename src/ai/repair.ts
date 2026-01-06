@@ -90,10 +90,6 @@ export async function repairSnippet(originalCode: string, language: string = 'ja
         }
         
         repairedCode = repairedCode.trim();
-        
-        // Save to cache
-        saveCachedRepair(originalCode, repairedCode);
-        
         return repairedCode;
 
     } catch (error) {
