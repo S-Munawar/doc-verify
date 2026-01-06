@@ -2,20 +2,100 @@
 
 Welcome to my library.
 
-## Code
-Here is an example of how to use my library:
+## Code Examples
 
+Here is an example of how to use my library in different languages:
+
+### JavaScript
 ```javascript
 console.log('Doc-Verify')
 ```
 
+### Python
 ```python
 print('Doc-Verify')
 ```
 
+### TypeScript
 ```typescript
 console.log('Doc-Verify')
 ```
+
+### Go
+```go
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Doc-Verify")
+}
+```
+
+<!-- ### Ruby
+```ruby
+puts 'Doc-Verify'
+```
+
+### Java
+```java
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Doc-Verify");
+    }
+}
+```
+
+### PHP
+```php
+<?php
+echo "Doc-Verify\n";
+?>
+```
+
+### Bash
+```bash
+echo "Doc-Verify"
+```
+
+### Rust
+```rust
+fn main() {
+    println!("Doc-Verify");
+}
+```
+
+### C
+```c
+#include <stdio.h>
+
+int main() {
+    printf("Doc-Verify\n");
+    return 0;
+}
+```
+
+### C++
+```cpp
+#include <iostream>
+
+int main() {
+    std::cout << "Doc-Verify" << std::endl;
+    return 0;
+}
+```
+
+### Perl
+```perl
+print "Doc-Verify\n";
+```
+
+### Lua
+```lua
+print("Doc-Verify")
+``` -->
+
+---
 
 # My API
 

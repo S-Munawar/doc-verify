@@ -38,39 +38,31 @@ program
 
         console.log(chalk.green(`✓ Found ${targetSnippets.length} snippets.\n`));
 
-        // 3. Display found snippets (Preview)
-        targetSnippets.forEach((snippet, index) => {
-            console.log(chalk.gray(`--- Snippet #${index + 1} (Line ${snippet.line}) [${snippet.language}] ---`));
-            console.log(snippet.code);
-            console.log('\n');
-        });
+        console.log(chalk.white.blue(`--- Repairing Snippets ---\n`));
+        const repairedSnippets = await Promise.all(targetSnippets.map(async (snippet, index) => {
+            const executableCode = await repairSnippet(snippet.code, snippet.language); // AI REPAIR HERE
+            return { index, snippet, executableCode };
+        }));
 
-        // Loop through and run them
-        for (const [index, snippet] of targetSnippets.entries()) {
-            console.log(chalk.white.bold(`--- Running Snippet #${index + 1} (Line ${snippet.line}) [${snippet.language}] ---`));
-            
-            console.log(chalk.yellow('🤖 AI Repairing...'));
-            const executableCode = await repairSnippet(snippet.code, snippet.language);
-
-            // EXECUTE HERE
-            console.log(chalk.blue('⚡ Executing...'));
+        console.log(chalk.white.blue(`\n--- Running Repaired Snippets ---\n`));
+        for (const { index, snippet, executableCode } of repairedSnippets) {
+            console.log(chalk.blue(`\n💻 Running snippet #${index + 1} (Language: ${snippet.language})`));
             const result = await runner(executableCode, snippet.language);
-
             if (result.success) {
-                console.log(chalk.green('PASS ✅'));
-                console.log(chalk.gray('Output:'));
-                console.log(result.output);
+                console.log(chalk.green('✅ Success! Output:\n'), chalk.white(result.output));
             } else {
-                console.log(chalk.red('FAIL ❌'));
-                console.log(chalk.red(`Error: ${result.error}`));
-                console.log(chalk.gray('Output trace:'));
-                console.log(result.output);
+                console.log(chalk.red('❌ Error during execution:\n'), chalk.red(result.error || 'Unknown error'));
             }
-            console.log('\n');
         }
-
+        
     } catch (err: any) {
         console.error(chalk.red(`Error: ${err.message}`));
+    }
+    finally {
+        console.log(chalk.blue('🏁 Done.\n'));
+        // Delete all images created during the run
+
+        // (In a real implementation, we might want to be more selective here)
     }
   });
 

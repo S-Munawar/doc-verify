@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import { getCachedRepair, saveCachedRepair } from './cache';
+import { codeRepairSystemPrompt } from '../ai/prompt.js';
 
 dotenv.config();
 
@@ -9,37 +11,69 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+// Language-specific code start patterns (ordered by priority within each language)
+const languagePatterns: Record<string, RegExp[]> = {
+    javascript: [/\(async\s*\(/, /async\s+(?:function|\()/, /const\s+\w/, /let\s+\w/, /var\s+\w/, /function\s+\w/, /import\s+/, /export\s+/, /module\./, /require\s*\(/],
+    typescript: [/\(async\s*\(/, /async\s+(?:function|\()/, /const\s+\w/, /let\s+\w/, /var\s+\w/, /function\s+\w/, /import\s+/, /export\s+/, /interface\s+/, /type\s+\w/],
+    python: [/^import\s+/m, /^from\s+\w+\s+import/, /^class\s+\w/, /^def\s+\w/, /^async\s+def/, /^print\s*\(/, /^if\s+__name__/],
+    go: [/^package\s+\w/m, /^import\s+/, /^func\s+\w/, /^type\s+\w/],
+    java: [/^package\s+/, /^import\s+/, /^public\s+class/, /^class\s+\w/],
+    rust: [/^use\s+/, /^fn\s+main/, /^fn\s+\w/, /^struct\s+/, /^impl\s+/],
+    ruby: [/^require\s+['"]/, /^class\s+\w/, /^def\s+\w/, /^puts\s+/, /^print\s+/],
+    php: [/<\?php/, /^class\s+\w/, /^function\s+\w/, /^\$\w+\s*=/],
+    bash: [/^#!/, /^echo\s+/, /^export\s+\w/, /^\w+\s*\(\)\s*\{/],
+    shell: [/^#!/, /^echo\s+/, /^export\s+\w/],
+    c: [/^#include\s*</, /^int\s+main/, /^void\s+\w/],
+    cpp: [/^#include\s*</, /^int\s+main/, /^class\s+\w/, /^namespace\s+/],
+    perl: [/^use\s+/, /^my\s+/, /^sub\s+\w/, /^print\s+/],
+    lua: [/^local\s+/, /^function\s+\w/, /^print\s*\(/],
+};
+
+// Fallback patterns if language not found
+const genericPatterns = [/^\/\//m, /^\/\*/m, /^#[^!]/m];
+
+/**
+ * Extract clean code from AI response by finding the earliest code pattern
+ */
+function extractCode(code: string, language: string): string {
+    const lang = language.toLowerCase();
+    const patterns = languagePatterns[lang] || languagePatterns['javascript'] || genericPatterns;
+    
+    // Find the earliest match across all patterns
+    let earliestIndex = -1;
+    
+    for (const pattern of patterns) {
+        const match = code.search(pattern);
+        if (match >= 0 && (earliestIndex === -1 || match < earliestIndex)) {
+            earliestIndex = match;
+        }
+    }
+    
+    // Only trim if we found a match AND it's not at the start
+    if (earliestIndex > 0) {
+        return code.substring(earliestIndex);
+    }
+    
+    return code;
+}
+
 export async function repairSnippet(originalCode: string, language: string = 'javascript'): Promise<string> {
     
-    const systemPrompt = `
-    You are a Code Repair Agent for a documentation verification tool.
-    Your goal is to make a code snippet EXECUTABLE in a standalone environment (Docker Node.js container).
-    
-    RULES:
-    1. You must MOCK any missing variables, functions, or imports.
-    2. If the code uses a library (like 'stripe' or 'react'), mock the library object. 
-    3. Do NOT change the logic of the snippet itself.
-    4. Do NOT output markdown formatting (like \`\`\`). Output RAW code only.
-    5. If the code requires an async operation, wrap the whole thing in an IIFE: (async () => { ... })();
-    
-    EXAMPLE INPUT:
-    const user = await db.getUser(1);
-    console.log(user.name);
-
-    EXAMPLE OUTPUT:
-    (async () => {
-      const db = { getUser: async (id) => ({ id, name: "Test User" }) }; // Mock added
-      const user = await db.getUser(1);
-      console.log(user.name);
-    })();
-    `;
+    // Generate prompt with only the relevant language rules injected
+    const systemPrompt = codeRepairSystemPrompt(language);
 
     try {
+        // Check cache first
+        const cached = getCachedRepair(originalCode);
+        if (cached) {
+            return cached;
+        }
+
         const response = await openai.chat.completions.create({
             model: process.env.OPENAI_MODEL_NAME!,
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `Language: ${language}\n\nCode:\n${originalCode}` }
+                { role: "user", content: originalCode }
             ],
             temperature: 0.1,
         });
@@ -52,60 +86,15 @@ export async function repairSnippet(originalCode: string, language: string = 'ja
             repairedCode = codeBlockMatch[1];
         } else {
             // Remove any leading explanatory text before the actual code
-            // Language-agnostic patterns for code start
-            const codeStartPatterns = [
-                // JavaScript/TypeScript
-                /const\s+\w/,
-                /let\s+\w/,
-                /var\s+\w/,
-                /function\s+\w/,
-                /async\s+(?:function|\()/,
-                /\(async\s*\(/,
-                /import\s+/,
-                /export\s+/,
-                /module\./,
-                /require\s*\(/,
-                // Python
-                /def\s+\w/,
-                /class\s+\w/,
-                /from\s+\w+\s+import/,
-                /print\s*\(/,
-                /if\s+__name__/,
-                // Go
-                /package\s+\w/,
-                /func\s+\w/,
-                /type\s+\w/,
-                // Ruby
-                /puts\s+/,
-                /require\s+['"]/,
-                // Java
-                /public\s+(?:class|static|void)/,
-                /private\s+/,
-                /protected\s+/,
-                // PHP
-                /<\?php/,
-                /echo\s+/,
-                /\$\w+\s*=/,
-                // Bash/Shell
-                /^#!/,
-                /echo\s+/,
-                /export\s+\w/,
-                // Generic
-                /^\/\//m,  // Single-line comment
-                /^\/\*/m,  // Multi-line comment start
-                /^#[^!]/m, // Hash comment (Python, Ruby, Bash)
-            ];
-            
-            for (const pattern of codeStartPatterns) {
-                const match = repairedCode.search(pattern);
-                if (match > 0) {
-                    repairedCode = repairedCode.substring(match);
-                    break;
-                }
-            }
+            repairedCode = extractCode(repairedCode, language);
         }
-
-        return repairedCode.trim();
+        
+        repairedCode = repairedCode.trim();
+        
+        // Save to cache
+        saveCachedRepair(originalCode, repairedCode);
+        
+        return repairedCode;
 
     } catch (error) {
         console.error("AI Repair Failed:", error);

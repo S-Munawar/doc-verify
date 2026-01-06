@@ -1,0 +1,6 @@
+{
+  "c23f3606b3bfdc908233f8d033408bcb6c451368369e8dd4fdb8b48131b48e8a": "console.log('Doc-Verify');",
+  "44b2f7eff19bf42455b05cf48d4b6b7be09195fe6314d6695e38c752a69e3d90": "(async () => {\n  const stripe = {\n    paymentIntents: {\n      create: async (opts) => ({ id: 'pi_mock', ...opts }),\n    },\n  };\n  const payment = await stripe.paymentIntents.create({\n    amount: 2000,\n    currency: 'usd',\n  });\n  console.log('Payment created:', payment.amount);\n})();",
+  "e81f4e7eb6adffcf747fe20b00542ec1f817f20432fdec0755d5eaa54ff14e58": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Doc-Verify\")\n}",
+  "4db959485452c0bc79c31c4fff03c13e6e1ad6bdb6482925abec76868119d189": "print('Doc-Verify')"
+}
