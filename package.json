@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
+    "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "bin": {},
+  "bin": {
+    "dv": "./dist/index.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

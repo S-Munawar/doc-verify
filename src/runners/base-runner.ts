@@ -1,5 +1,6 @@
 import Docker from 'dockerode';
 import { Writable } from 'stream';
+import { NETWORK_SHIM } from '../engine/mocks/network-shim';
 
 const docker = new Docker();
 
@@ -44,7 +45,8 @@ export abstract class BaseRunner {
      * Override in subclasses if needed (e.g., wrapping code).
      */
     preprocessCode(code: string): string {
-        return code;
+        const finalCode = NETWORK_SHIM + '\n' + code;
+        return finalCode;
     }
 
     /**
@@ -57,7 +59,7 @@ export abstract class BaseRunner {
             // Preprocess the code if needed
             const processedCode = this.preprocessCode(code);
 
-            // Base64 encode the code to avoid shell escaping issues
+            // Base64 encode the code to avoid shell escaping issues.
             const b64Code = Buffer.from(processedCode).toString('base64');
             const execCmd = this.getExecuteCommand();
             const command = `echo "${b64Code}" | base64 -d > ${this.inputFile} && ${execCmd}`;

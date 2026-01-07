@@ -4,7 +4,16 @@ Welcome to my library.
 
 ## Code Examples
 
+### JavaScript
+```javascript
 Here is an example of how to use my library in different languages:
+
+// This fetches data from a real URL
+const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');
+const data = await res.json();
+
+console.log('Got data:', data);
+```
 
 ### JavaScript
 ```javascript

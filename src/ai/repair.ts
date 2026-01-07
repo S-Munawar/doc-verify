@@ -57,7 +57,7 @@ function extractCode(code: string, language: string): string {
     return code;
 }
 
-export async function repairSnippet(originalCode: string, language: string = 'javascript'): Promise<string> {
+export async function repairSnippet(index: number, originalCode: string, language: string = 'javascript'): Promise<string> {
     
     // Generate prompt with only the relevant language rules injected
     const systemPrompt = codeRepairSystemPrompt(language);
@@ -90,10 +90,25 @@ export async function repairSnippet(originalCode: string, language: string = 'ja
         }
         
         repairedCode = repairedCode.trim();
+        saveCachedRepair(originalCode, repairedCode, index);
         return repairedCode;
 
     } catch (error) {
         console.error("AI Repair Failed:", error);
         return originalCode; // Fallback to original
     }
+}
+
+export async function debug(originalCode: string, repairedCode: string, language: string = 'javascript'): Promise<string> {
+    const prompt = `The following code snippet was repaired but still fails to execute. Explain the errors in detail and suggest improvements.`;
+
+    const response = await openai.chat.completions.create({
+            model: process.env.OPENAI_MODEL_NAME!,
+            messages: [
+                { role: "system", content: prompt },
+                { role: "user", content: originalCode }
+            ],
+            temperature: 0.1,
+        });
+    return response.choices[0].message.content || "No debug information available.";
 }

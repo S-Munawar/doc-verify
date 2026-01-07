@@ -4,8 +4,9 @@ import chalk from 'chalk';
 import dotenv from 'dotenv';
 import { extractSnippets } from './parser/extracts.js';
 import { runner } from './engine/runner.js';
-import { repairSnippet } from './ai/repair.js';
+import { debug, repairSnippet } from './ai/repair.js';
 import { select } from '@inquirer/prompts';
+import { clearCache } from './ai/cache.js';
 
 dotenv.config();
 
@@ -44,7 +45,7 @@ program
         const repairedSnippets = await Promise.all(
             targetSnippets.map(async (snippet, index) => {
                 console.log(chalk.yellow(`🤖 Repairing #${index + 1} [${snippet.language}]...`));
-                const executableCode = await repairSnippet(snippet.code, snippet.language);
+                const executableCode = await repairSnippet(index + 1, snippet.code, snippet.language);
                 return { index, snippet, executableCode };
             })
         );
@@ -74,6 +75,7 @@ program
                         choices: [
                             { name: '🔍 View Details', value: 'details' },
                             { name: '🔄 Retry with AI', value: 'retry' },
+                            { name: '🔄 Clear Cache & Retry', value: 'clear' },
                             { name: '⏭️  Skip', value: 'skip' },
                             { name: '🚪 Exit', value: 'exit' }
                         ]
@@ -87,11 +89,33 @@ program
                             console.log(executableCode);
                             console.log(chalk.cyan('\n📝 Error Output:'));
                             console.log(result.output || result.error);
+                            const nextAction = await select({
+                                message: `What do you want to do?`,
+                                choices: [
+                                    { name: 'Debug with AI', value: 'debug' },
+                                    { name: 'Back', value: 'back' },
+                                ]
+                            });
+                            if (nextAction === 'debug') {
+                                console.log(chalk.yellow('\n🐞 Invoking AI debugger...'));
+                                const debugInfo = await debug(executableCode, snippet.language);
+                                console.log(debugInfo);
+                            }
+                            else if (nextAction === 'back') {
+                                break;
+                            }
                             break;
                             
                         case 'retry':
                             console.log(chalk.yellow('\n🤖 Re-invoking AI repair...'));
-                            executableCode = await repairSnippet(snippet.code, snippet.language);
+                            executableCode = await repairSnippet(index + 1, snippet.code, snippet.language);
+                            // Loop continues, will run again
+                            break;
+                        
+                        case 'clear':
+                            console.log(chalk.yellow('\n🗑️  Clearing cache and re-invoking AI repair...'));
+                            clearCache(snippet.code, index + 1);
+                            executableCode = await repairSnippet(index + 1, snippet.code, snippet.language);
                             // Loop continues, will run again
                             break;
                             
@@ -113,6 +137,14 @@ program
     } finally {
         console.log(chalk.blue('\n🏁 Done.\n'));
     }
+  });
+  
+  program
+  .command('clear')
+  .description('Clear the AI repair cache')
+  .option('-s, --snippet <snippet>', 'Clear cache for a specific code snippet')
+  .action(() => {
+    clearCache();
   });
 
 program.parse();
