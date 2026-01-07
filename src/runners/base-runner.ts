@@ -1,6 +1,7 @@
 import Docker from 'dockerode';
 import { Writable } from 'stream';
 import { NETWORK_SHIM } from '../engine/mocks/network-shim';
+import { TIMEOUT } from 'dns';
 
 const docker = new Docker();
 
@@ -118,7 +119,10 @@ export abstract class BaseRunner {
                     resolve(output);
                 }
                 function onProgress(event: any) {
-                    // Optional: print loading progress
+                    while (event) {
+                        console.log(".");
+                        break;
+                    }
                 }
             });
         });

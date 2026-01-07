@@ -7,7 +7,8 @@
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bundle": "ncc build src/index.ts -o dist --license licenses.txt"
   },
   "bin": {
     "dv": "./dist/index.js"
@@ -34,6 +35,7 @@
     "@types/mdast": "^4.0.4",
     "@types/node": "^25.0.3",
     "@types/unist": "^3.0.3",
+    "@vercel/ncc": "^0.38.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

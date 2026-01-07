@@ -139,12 +139,21 @@ program
     }
   });
   
-  program
+
+program
   .command('clear')
   .description('Clear the AI repair cache')
   .option('-s, --snippet <snippet>', 'Clear cache for a specific code snippet')
   .action(() => {
     clearCache();
   });
+
+program
+  .command('lint')
+  .description('Lint command (to be implemented)')
+  .action(() => {
+    console.log(chalk.yellow('Lint command is not yet implemented.'));
+  });
+  
 
 program.parse();

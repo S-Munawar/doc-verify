@@ -1,0 +1,20 @@
+name: Test DocVerify Action
+
+on: [push, pull_request]
+
+jobs:
+  verify-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # This step runs the action we just created
+      - name: Run DocVerify
+        uses: ./ # Uses the action from the current root directory
+        with:
+          file: 'Readme.md'
+          language: 'javascript'
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          openai_api_base_url: ${{ secrets.OPENAI_API_BASE_URL }}
+          openai_model_name: ${{ secrets.OPENAI_MODEL_NAME }}

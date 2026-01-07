@@ -1,7 +1,7 @@
 {
-  "c23f3606b3bfdc908233f8d033408bcb6c451368369e8dd4fdb8b48131b48e8a": "console.log('Doc-Verify');",
   "ec3147245bfd0e7420c8aa3550cbc23abfd6749e0b3aa9d84e88840d7225d91c": "(async () => {\n  const fetch = async (url) => ({ json: async () => ({ message: 'mock' }) });\n  const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');\n  const data = await res.json();\n  console.log('Got data:', data);\n})();",
-  "44b2f7eff19bf42455b05cf48d4b6b7be09195fe6314d6695e38c752a69e3d90": "(async () => {\n  const stripe = {\n    paymentIntents: {\n      create: async (opts) => ({ id: 'pi_mock', ...opts }),\n    },\n  };\n  const payment = await stripe.paymentIntents.create({\n    amount: 2000,\n    currency: 'usd',\n  });\n  console.log('Payment created:', payment.amount);\n})();",
+  "44b2f7eff19bf42455b05cf48d4b6b7be09195fe6314d6695e38c752a69e3d90": "(async () => {\n  const stripe = {\n    paymentIntents: {\n      create: async (opts) => ({ id: 'pi_mock', ...opts })\n    }\n  };\n  const payment = await stripe.paymentIntents.create({\n    amount: 2000,\n    currency: 'usd',\n  });\n  console.log('Payment created:', payment.amount);\n})();",
+  "c23f3606b3bfdc908233f8d033408bcb6c451368369e8dd4fdb8b48131b48e8a": "console.log('Doc-Verify');",
   "e81f4e7eb6adffcf747fe20b00542ec1f817f20432fdec0755d5eaa54ff14e58": "package main\n\nimport \"fmt\"\n\nfunc main() {\n    fmt.Println(\"Doc-Verify\")\n}",
   "e2ecf81380a0a1df51f1823c5b5080cd9e6c1199490b860f0fb755e5ae50a9fd": "class Error {\n  constructor(message) {\n    this.name = \"Error\";\n    this.message = message;\n    this.stack = \"\";\n  }\n}\n\ntry {\n  print('Doc-Verify');\n} catch (error) {\n  throw new Error(\"API\");\n}"
 }

@@ -1,0 +1,54 @@
+name: 'DocVerify'
+description: 'Verifies documentation code snippets by running them in sandboxed containers.'
+author: 'Shaik Abdul Munawar'
+inputs:
+  file:
+    description: 'The markdown file to verify'
+    required: true
+    default: 'README.md'
+  language:
+    description: 'The language to filter (e.g., javascript)'
+    required: false
+  openai_api_key:
+    description: 'API Key for AI repairs'
+    required: true
+  openai_api_base_url:
+    description: 'Base URL for the OpenAI-compatible API endpoint'
+    required: true
+  openai_model_name:
+    description: 'Model name for the OpenAI-compatible API endpoint'
+    required: true
+  
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    # - name: Install Dependencies
+    #   shell: bash
+    #   run: |
+    #     cd ${{ github.action_path }}
+    #     npm install
+
+    # - name: Build Project
+    #   shell: bash
+    #   run: |
+    #     cd ${{ github.action_path }}
+    #     npm run build
+
+    - name: Run DocVerify
+      shell: bash
+      env:
+        OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+        OPENAI_BASE_URL: ${{ inputs.openai_api_base_url }}
+        OPENAI_MODEL_NAME: ${{ inputs.openai_model_name }}
+      run: |
+        cd ${{ github.action_path }}
+        if [ -n "${{ inputs.language }}" ]; then
+          node ./dist/index.js run ${{ inputs.file }} --lang ${{ inputs.language }}
+        else
+          node ./dist/index.js run ${{ inputs.file }}
+        fi
