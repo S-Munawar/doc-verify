@@ -1,7 +1,7 @@
 {
-  "name": "doc-verify",
-  "version": "1.0.1",
-  "description": "",
+  "name": "@shaik_munawar/doc-verify",
+  "version": "1.0.0",
+  "description": "Verify documentation code snippets by running them in sandboxed Docker containers",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
