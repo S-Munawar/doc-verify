@@ -1,4 +1,4 @@
-name: 'DocVerify'
+name: 'Doc Verify'
 description: 'Verifies documentation code snippets by running them in sandboxed containers.'
 author: 'Shaik Abdul Munawar'
 inputs:
