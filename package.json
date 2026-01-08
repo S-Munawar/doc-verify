@@ -1,9 +1,13 @@
 {
-  "name": "doc-verify",
-  "version": "1.0.1",
+  "name": "@s-munawar/doc-verify",
+  "version": "1.0.0",
   "description": "Verify documentation code snippets by running them in sandboxed Docker containers",
   "type": "commonjs",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/S-Munawar/doc-verify.git"
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
