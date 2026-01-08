@@ -11,6 +11,12 @@ importers:
       '@inquirer/prompts':
         specifier: ^8.1.0
         version: 8.1.0(@types/node@25.0.3)
+      '@s-munawar/doc-verify':
+        specifier: 1.0.0
+        version: '@S-Munawar/doc-verify@1.0.0(@types/node@25.0.3)'
+      '@shaik_munawar/doc-verify':
+        specifier: ^1.0.2
+        version: 1.0.2(@types/node@25.0.3)
       chalk:
         specifier: ^5.6.2
         version: 5.6.2
@@ -65,6 +71,10 @@ importers:
         version: 5.9.3
 
 packages:
+
+  '@S-Munawar/doc-verify@1.0.0':
+    resolution: {integrity: sha512-o7qDqaFMhCjc5plOEBKsAAnFaODOdHOdK5Ta5djeqvZRTmOik+B32r9H9+CL6GSDM3DCNM8nuqE6cMXZ/lJtSA==, tarball: https://npm.pkg.github.com/download/@S-Munawar/doc-verify/1.0.0/a36ea0cb2e7b63e98f2d6e3b28c180f49beedd39}
+    hasBin: true
 
   '@balena/dockerignore@1.0.2':
     resolution: {integrity: sha512-wMue2Sy4GAVTk6Ic4tJVcnfdau+gx2EnG7S+uAEe+TWJFqE4YoWN4/H8MSLj4eYJKxGg26lZwboEniNiNwZQ6Q==}
@@ -405,6 +415,10 @@ packages:
 
   '@protobufjs/utf8@1.1.0':
     resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
+
+  '@shaik_munawar/doc-verify@1.0.2':
+    resolution: {integrity: sha512-OZq95f5tHaO53CmY+Ows2nf5nD479EQfZWOKmmKN7rhvUoOjoZXfR6j+/zTW9bocSmbfo1Q1H1kBcFLOGOwAnw==}
+    hasBin: true
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
@@ -916,6 +930,25 @@ packages:
 
 snapshots:
 
+  '@S-Munawar/doc-verify@1.0.0(@types/node@25.0.3)':
+    dependencies:
+      '@inquirer/prompts': 8.1.0(@types/node@25.0.3)
+      chalk: 5.6.2
+      commander: 14.0.2
+      dockerode: 4.0.9
+      dotenv: 17.2.3
+      mdast: 3.0.0
+      openai: 6.15.0
+      remark-gfm: 4.0.1
+      remark-parse: 11.0.0
+      unified: 11.0.5
+      unist-util-visit: 5.0.0
+    transitivePeerDependencies:
+      - '@types/node'
+      - supports-color
+      - ws
+      - zod
+
   '@balena/dockerignore@1.0.2': {}
 
   '@esbuild/aix-ppc64@0.27.2':
@@ -1158,6 +1191,25 @@ snapshots:
   '@protobufjs/pool@1.1.0': {}
 
   '@protobufjs/utf8@1.1.0': {}
+
+  '@shaik_munawar/doc-verify@1.0.2(@types/node@25.0.3)':
+    dependencies:
+      '@inquirer/prompts': 8.1.0(@types/node@25.0.3)
+      chalk: 5.6.2
+      commander: 14.0.2
+      dockerode: 4.0.9
+      dotenv: 17.2.3
+      mdast: 3.0.0
+      openai: 6.15.0
+      remark-gfm: 4.0.1
+      remark-parse: 11.0.0
+      unified: 11.0.5
+      unist-util-visit: 5.0.0
+    transitivePeerDependencies:
+      - '@types/node'
+      - supports-color
+      - ws
+      - zod
 
   '@types/debug@4.1.12':
     dependencies:

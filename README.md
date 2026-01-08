@@ -2,7 +2,9 @@
 
 A CLI tool that extracts code snippets from markdown documentation and executes them in sandboxed Docker containers to verify they actually work.
 
-[![npm version](https://img.shields.io/npm/v/doc-verify.svg)](https://www.npmjs.com/package/@shaik_munawar/doc-verify)
+[![npm version](https://img.shields.io/npm/v/@shaik_munawar/doc-verify.svg)](https://www.npmjs.com/package/@shaik_munawar/doc-verify)
+[![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-doc--verify-blue?logo=github)](https://github.com/S-Munawar/doc-verify/pkgs/npm/doc-verify)
+[![GitHub Marketplace](https://img.shields.io/badge/Marketplace-DocVerify%20Action-green?logo=github)](https://github.com/marketplace/actions/docverify-action)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
 ## Why?
@@ -28,11 +30,14 @@ Documentation code examples often become outdated or contain bugs that slip thro
 ## Installation
 
 ```bash
-# Install globally
-npm install -g doc-verify
+# Install globally from npm
+npm install -g @shaik_munawar/doc-verify
 
 # Or use with npx
-npx doc-verify run README.md
+npx @shaik_munawar/doc-verify run README.md
+
+# Install from GitHub Packages
+npm install -g @s-munawar/doc-verify --registry=https://npm.pkg.github.com
 ```
 
 ### Prerequisites
@@ -144,7 +149,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Verify Documentation
-        uses: shaik-abdul-munawar/doc-verify@v1
+        uses: S-Munawar/doc-verify@v1
         with:
           file: README.md
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
@@ -244,7 +249,7 @@ src/
 
 ```bash
 # Clone the repo
-git clone https://github.com/shaik-abdul-munawar/doc-verify.git
+git clone https://github.com/S-Munawar/doc-verify.git
 cd doc-verify
 
 # Install dependencies
