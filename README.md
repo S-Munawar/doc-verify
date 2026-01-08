@@ -2,7 +2,7 @@
 
 A CLI tool that extracts code snippets from markdown documentation and executes them in sandboxed Docker containers to verify they actually work.
 
-[![npm version](https://img.shields.io/npm/v/doc-verify.svg)](https://www.npmjs.com/package/doc-verify)
+[![npm version](https://img.shields.io/npm/v/doc-verify.svg)](https://www.npmjs.com/package/@shaik_munawar/doc-verify)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
 ## Why?
