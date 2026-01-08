@@ -4,14 +4,13 @@ dotenv.config({ quiet: true });
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { extractSnippets } from './parser/extracts.js';
-import { runner } from './engine/runner.js';
-import { debug, repairSnippet } from './ai/repair.js';
+import { extractSnippets } from '@/parser/extracts.js';
+import { runner } from '@/engine/runner.js';
+import { debug, repairSnippet, generateCleanFix } from '@/ai/repair.js';
 import { select } from '@inquirer/prompts';
-import { clearCache } from './ai/cache.js';
-import { updateBadge } from './utils/badge.js';
-import { generateCleanFix } from './ai/repair.js';
-import { applyPatch } from './utils/patcher.js';
+import { clearCache } from '@/ai/cache.js';
+import { updateBadge } from '@/utils/badge.js';
+import { applyPatch } from '@/utils/patcher.js';
 
 // ─────────────────────────────────────────────────────────────
 // UI Helpers

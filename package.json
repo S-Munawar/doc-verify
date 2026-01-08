@@ -2,7 +2,7 @@
   "name": "@shaik_munawar/doc-verify",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "dev": "tsx src/index.ts",

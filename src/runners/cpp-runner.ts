@@ -1,4 +1,4 @@
-import { BaseRunner } from './base-runner';
+import { BaseRunner } from '@/runners/base-runner.js';
 
 export class CppRunner extends BaseRunner {
     protected image = 'gcc:13-bookworm';

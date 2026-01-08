@@ -1,5 +1,5 @@
-import { BaseRunner } from './base-runner';
-import { NETWORK_SHIM } from '../engine/mocks/network-shim';
+import { BaseRunner } from '@/runners/base-runner.js';
+import { NETWORK_SHIM } from '@/engine/mocks/network-shim.js';
 
 export class TypeScriptRunner extends BaseRunner {
     protected image = 'denoland/deno:latest';

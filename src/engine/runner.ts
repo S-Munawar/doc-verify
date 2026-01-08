@@ -1,4 +1,4 @@
-import { getRunner, RunResult } from '../runners';
+import { getRunner, RunResult } from '@/runners/index.js';
 
 export type { RunResult };
 

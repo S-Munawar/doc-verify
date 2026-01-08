@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
-import { getCachedRepair, saveCachedRepair } from './cache';
-import { codeRepairSystemPrompt, debugPrompt } from '../ai/prompt.js';
-import { fixPrompt } from '../ai/prompt.js';
+import { getCachedRepair, saveCachedRepair } from '@/ai/cache.js';
+import { codeRepairSystemPrompt, debugPrompt, fixPrompt } from '@/ai/prompt.js';
 
 // Lazy-initialized OpenAI client
 let _openai: OpenAI | null = null;

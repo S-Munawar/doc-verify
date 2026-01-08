@@ -1,4 +1,4 @@
-import { BaseRunner } from './base-runner';
+import { BaseRunner } from '@/runners/base-runner.js';
 
 export class JavaRunner extends BaseRunner {
     protected image = 'eclipse-temurin:17-alpine';

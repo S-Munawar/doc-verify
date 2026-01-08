@@ -1,17 +1,17 @@
-import { BaseRunner, RunResult } from './base-runner';
-import { JavaScriptRunner } from './javascript-runner';
-import { TypeScriptRunner } from './typescript-runner';
-import { PythonRunner } from './python-runner';
-import { GoRunner } from './go-runner';
-import { RubyRunner } from './ruby-runner';
-import { JavaRunner } from './java-runner';
-import { PhpRunner } from './php-runner';
-import { BashRunner } from './bash-runner';
-import { RustRunner } from './rust-runner';
-import { CRunner } from './c-runner';
-import { CppRunner } from './cpp-runner';
-import { PerlRunner } from './perl-runner';
-import { LuaRunner } from './lua-runner';
+import { BaseRunner, RunResult } from '@/runners/base-runner.js';
+import { JavaScriptRunner } from '@/runners/javascript-runner.js';
+import { TypeScriptRunner } from '@/runners/typescript-runner.js';
+import { PythonRunner } from '@/runners/python-runner.js';
+import { GoRunner } from '@/runners/go-runner.js';
+import { RubyRunner } from '@/runners/ruby-runner.js';
+import { JavaRunner } from '@/runners/java-runner.js';
+import { PhpRunner } from '@/runners/php-runner.js';
+import { BashRunner } from '@/runners/bash-runner.js';
+import { RustRunner } from '@/runners/rust-runner.js';
+import { CRunner } from '@/runners/c-runner.js';
+import { CppRunner } from '@/runners/cpp-runner.js';
+import { PerlRunner } from '@/runners/perl-runner.js';
+import { LuaRunner } from '@/runners/lua-runner.js';
 
 // Re-export types
 export { BaseRunner, RunResult };

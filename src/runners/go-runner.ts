@@ -1,4 +1,4 @@
-import { BaseRunner } from './base-runner';
+import { BaseRunner } from '@/runners/base-runner.js';
 
 export class GoRunner extends BaseRunner {
     protected image = 'golang:1.20-alpine';

@@ -1,4 +1,4 @@
-import { BaseRunner } from './base-runner';
+import { BaseRunner } from '@/runners/base-runner.js';
 
 export class RubyRunner extends BaseRunner {
     protected image = 'ruby:3.2-alpine';

@@ -1,4 +1,4 @@
-import { BaseRunner } from './base-runner';
+import { BaseRunner } from '@/runners/base-runner.js';
 
 export class RustRunner extends BaseRunner {
     protected image = 'rust:1.75-alpine';

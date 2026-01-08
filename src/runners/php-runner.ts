@@ -1,4 +1,4 @@
-import { BaseRunner } from './base-runner';
+import { BaseRunner } from '@/runners/base-runner.js';
 
 export class PhpRunner extends BaseRunner {
     protected image = 'php:8.2-cli-alpine';
