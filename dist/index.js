@@ -72368,11 +72368,9 @@ function getCachedRepair(code) {
         return null;
     const cache = JSON.parse(fs_1.default.readFileSync(CACHE_FILE, 'utf-8'));
     const hash = crypto_1.default.createHash('sha256').update(code).digest('hex');
-    const cached = cache[hash] || null;
-    console.log('Cache lookup. Found:', cached ? 'Yes' : 'No');
-    return cached;
+    return cache[hash] || null;
 }
-function saveCachedRepair(code, repaired, index = 0) {
+function saveCachedRepair(code, repaired) {
     const hash = crypto_1.default.createHash('sha256').update(code).digest('hex');
     let cache = {};
     if (fs_1.default.existsSync(CACHE_FILE)) {
@@ -72380,29 +72378,20 @@ function saveCachedRepair(code, repaired, index = 0) {
     }
     cache[hash] = repaired;
     fs_1.default.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), { flag: 'w' });
-    console.log(`Saved repair to cache with hash. Snippet #${index}`);
 }
-function clearCache(code, index) {
-    if (!fs_1.default.existsSync(CACHE_FILE)) {
-        console.log('Cache file does not exist. Nothing to clear.');
+function clearCache(code) {
+    if (!fs_1.default.existsSync(CACHE_FILE))
         return;
-    }
-    ;
     if (code) {
         const hash = crypto_1.default.createHash('sha256').update(code).digest('hex');
         let cache = JSON.parse(fs_1.default.readFileSync(CACHE_FILE, 'utf-8'));
         if (cache[hash]) {
             delete cache[hash];
             fs_1.default.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), { flag: 'w' });
-            console.log('Cleared cache entry for the given code snippet.');
-        }
-        else {
-            console.log('No cache entry found for the given code snippet.');
         }
     }
     else {
         fs_1.default.unlinkSync(CACHE_FILE);
-        console.log('Cleared entire cache.');
     }
 }
 
@@ -72415,10 +72404,10 @@ function clearCache(code, index) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.codeRepairSystemPrompt = void 0;
+exports.fixPrompt = exports.debugPrompt = exports.codeRepairSystemPrompt = void 0;
 const codeRepairSystemPrompt = (language) => `
-You are a Code Repair Agent for a documentation verification tool.
-Your goal is to make a code snippet EXECUTABLE in a standalone, sandboxed Docker environment.
+You are a Code Completion Agent for a documentation verification tool.
+Your goal is to make a code snippet RUNNABLE in a standalone, sandboxed Docker environment.
 
 ═══════════════════════════════════════════════════════════════════════════════
                               CRITICAL RULES
@@ -72430,27 +72419,34 @@ Your goal is to make a code snippet EXECUTABLE in a standalone, sandboxed Docker
    - NO explanations, comments about changes, or preamble
    - NO "Here is the fixed code:" type messages
    
-2. CODE INTEGRITY:
-   - PRESERVE the original logic exactly
-   - PRESERVE all console.log/print statements
-   - PRESERVE the original output format
-   - DO NOT add extra logging or debugging
+2. CODE INTEGRITY - NEVER CORRECT BUGS:
+   - PRESERVE the original code EXACTLY as written
+   - DO NOT fix typos (e.g., console.logg stays as console.logg)
+   - DO NOT fix syntax errors in the original code
+   - DO NOT fix logical errors
+   - DO NOT rename misspelled functions/variables
+   - The goal is to TEST if the documentation code works, not FIX it
 
-3. MOCKING STRATEGY:
-   - Mock ONLY what is missing (undefined variables, missing imports)
+3. WHAT YOU CAN ADD:
+   - Mock undefined variables/imports that are EXTERNAL dependencies
+   - Add required boilerplate (package main, fn main, etc.)
+   - Wrap async code in appropriate patterns
+   - Add missing imports for STANDARD LIBRARY only
+
+4. MOCKING STRATEGY:
+   - Mock ONLY external dependencies (APIs, databases, third-party libs)
    - Mock external libraries with minimal fake implementations
-   - Mock API calls to return realistic sample data
-   - Mock database calls with in-memory data
+   - DO NOT mock or fix code that the user wrote incorrectly
 
-4. ASYNC HANDLING:
+5. ASYNC HANDLING:
    - ONLY wrap in async patterns if code contains 'await' keyword
    - Simple code WITHOUT 'await' should NEVER be wrapped
    - Each language has its own async pattern (see below)
 
-5. COMPLETENESS:
+6. COMPLETENESS:
    - Code must be ready to execute with NO modifications
-   - All imports/requires must be mocked or removed
-   - All external dependencies must be stubbed
+   - All external imports/requires must be mocked or removed
+   - Keep all original code errors intact for verification
 
 ═══════════════════════════════════════════════════════════════════════════════
                          LANGUAGE-SPECIFIC RULES
@@ -72485,13 +72481,14 @@ File System:
 ═══════════════════════════════════════════════════════════════════════════════
 
 ✓ Output ONLY executable code
-✓ Match the exact language specified
-✓ Keep original logic intact
-✓ Mock only what's missing
+✓ PRESERVE original code exactly (including typos/bugs)
+✓ Mock only EXTERNAL dependencies
+✓ Add boilerplate if needed (main function, imports)
 ✓ Simple code = no wrapping
+✗ NEVER fix typos (console.logg stays console.logg)
+✗ NEVER fix syntax errors in user's code
+✗ NEVER fix logical errors
 ✗ NO markdown, NO explanations
-✗ NO unnecessary async wrappers
-✗ NO changes to output format
 `;
 exports.codeRepairSystemPrompt = codeRepairSystemPrompt;
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -72801,8 +72798,93 @@ const luaRules = `▸ LUA
   Example:
     Input:  print("Hello")
     Output: print("Hello")`;
-// Remove old exports that are no longer needed
-// languagePrompt, getLanguagePrompt, compactSystemPrompt are replaced by codeRepairSystemPrompt(language)
+const debugPrompt = (originalCode, repairedCode, errorOutput, language = 'javascript') => `
+You are a Code Debugging Agent. Analyze why repaired code failed to execute.
+
+═══════════════════════════════════════════════════════════════════════════════
+                              YOUR TASK
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Compare the ORIGINAL code with the REPAIRED code
+2. Identify what changes were made by the AI repair
+3. Explain WHY the repaired code still failed
+4. Suggest specific fixes
+
+═══════════════════════════════════════════════════════════════════════════════
+                              CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+LANGUAGE: ${language}
+
+▸ ORIGINAL CODE (from documentation):
+\`\`\`${language}
+${originalCode}
+\`\`\`
+
+▸ REPAIRED CODE (AI attempted fix):
+\`\`\`${language}
+${repairedCode}
+\`\`\`
+
+▸ ERROR OUTPUT:
+\`\`\`
+${errorOutput}
+\`\`\`
+
+═══════════════════════════════════════════════════════════════════════════════
+                           RESPONSE FORMAT
+═══════════════════════════════════════════════════════════════════════════════
+
+Respond with:
+
+## 🔄 Changes Made by AI
+- List each modification the AI made to the original code
+
+## ❌ Why It Failed
+- Explain the root cause of the error based on the error output
+
+## ✅ Suggested Fix
+- Provide the corrected code that should work
+
+## 💡 Explanation
+- Brief explanation of what went wrong and how the fix addresses it
+`;
+exports.debugPrompt = debugPrompt;
+const fixPrompt = (brokenCode, errorMsg) => `
+You are a Code Fixing Agent. A code snippet failed to run. Your task is to fix the code.
+
+═══════════════════════════════════════════════════════════════════════════════
+                              CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+▸ BROKEN CODE:
+\`\`\`
+${brokenCode}
+\`\`\`
+
+▸ ERROR MESSAGE:
+\`\`\`
+${errorMsg}
+\`\`\`
+
+═══════════════════════════════════════════════════════════════════════════════
+                              YOUR TASK
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Analyze the broken code and error message
+2. Identify the root cause of the failure
+3. Provide a corrected version of the code that will run successfully
+
+═══════════════════════════════════════════════════════════════════════════════
+                           RESPONSE FORMAT
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Fix the error in the snippet (e.g., fix typos, syntax errors, missing commas).
+2. DO NOT add mocks or fake data. Keep it looking like a documentation example.
+3. DO NOT wrap it in async/await or IIFE functions.
+4. Return ONLY the raw code. No markdown.
+`;
+exports.fixPrompt = fixPrompt;
 
 
 /***/ }),
@@ -72818,16 +72900,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.repairSnippet = repairSnippet;
 exports.debug = debug;
+exports.generateCleanFix = generateCleanFix;
 const openai_1 = __importDefault(__nccwpck_require__(3954));
-const dotenv_1 = __importDefault(__nccwpck_require__(2921));
 const cache_1 = __nccwpck_require__(6067);
 const prompt_js_1 = __nccwpck_require__(751);
-dotenv_1.default.config();
-// Configure OpenAI client to use Ollama endpoint
-const openai = new openai_1.default({
-    baseURL: `${process.env.OPENAI_BASE_URL}/v1`,
-    apiKey: process.env.OPENAI_API_KEY,
-});
+const prompt_js_2 = __nccwpck_require__(751);
+// Lazy-initialized OpenAI client
+let _openai = null;
+function getOpenAI() {
+    if (!_openai) {
+        _openai = new openai_1.default({
+            baseURL: `${process.env.OPENAI_BASE_URL}/v1`,
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+    }
+    return _openai;
+}
 // Language-specific code start patterns (ordered by priority within each language)
 const languagePatterns = {
     javascript: [/\(async\s*\(/, /async\s+(?:function|\()/, /const\s+\w/, /let\s+\w/, /var\s+\w/, /function\s+\w/, /import\s+/, /export\s+/, /module\./, /require\s*\(/],
@@ -72877,7 +72965,7 @@ async function repairSnippet(index, originalCode, language = 'javascript') {
         if (cached) {
             return cached;
         }
-        const response = await openai.chat.completions.create({
+        const response = await getOpenAI().chat.completions.create({
             model: OPENAI_MODEL_NAME,
             messages: [
                 { role: "system", content: systemPrompt },
@@ -72896,25 +72984,46 @@ async function repairSnippet(index, originalCode, language = 'javascript') {
             repairedCode = extractCode(repairedCode, language);
         }
         repairedCode = repairedCode.trim();
-        (0, cache_1.saveCachedRepair)(originalCode, repairedCode, index);
+        (0, cache_1.saveCachedRepair)(originalCode, repairedCode);
         return repairedCode;
     }
     catch (error) {
-        console.error("AI Repair Failed:", error);
         return originalCode; // Fallback to original
     }
 }
-async function debug(originalCode, repairedCode, language = 'javascript') {
-    const prompt = `The following code snippet was repaired but still fails to execute. Explain the errors in detail and suggest improvements.`;
-    const response = await openai.chat.completions.create({
+async function debug(originalCode, repairedCode, errorOutput, language = 'javascript') {
+    const prompt = (0, prompt_js_1.debugPrompt)(originalCode, repairedCode, errorOutput, language);
+    const response = await getOpenAI().chat.completions.create({
         model: process.env.OPENAI_MODEL_NAME,
         messages: [
             { role: "system", content: prompt },
-            { role: "user", content: originalCode }
+            { role: "user", content: "Analyze the failure and provide debugging insights." }
+        ],
+        temperature: 0.3,
+    });
+    return response.choices[0].message.content || "No debug information available.";
+}
+async function generateCleanFix(brokenCode, errorMsg, language = 'javascript') {
+    const prompt = (0, prompt_js_2.fixPrompt)(errorMsg, brokenCode);
+    const response = await getOpenAI().chat.completions.create({
+        model: `${process.env.OPENAI_MODEL_NAME}`,
+        messages: [
+            { role: "system", content: prompt },
+            { role: "user", content: brokenCode }
         ],
         temperature: 0.1,
     });
-    return response.choices[0].message.content || "No debug information available.";
+    let fixed = response.choices[0].message.content || brokenCode;
+    // Strip markdown code blocks if present
+    const codeBlockMatch = fixed.match(/```(?:\w+)?\n?([\s\S]*?)```/);
+    if (codeBlockMatch) {
+        fixed = codeBlockMatch[1];
+    }
+    else {
+        // Use language-aware extraction to remove explanatory text
+        fixed = extractCode(fixed, language);
+    }
+    return fixed.trim();
 }
 
 
@@ -72989,138 +73098,187 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+const dotenv_1 = __importDefault(__nccwpck_require__(2921));
+dotenv_1.default.config({ quiet: true });
 const commander_1 = __nccwpck_require__(855);
 const chalk_1 = __importDefault(__nccwpck_require__(7493));
-const dotenv_1 = __importDefault(__nccwpck_require__(2921));
 const extracts_js_1 = __nccwpck_require__(292);
 const runner_js_1 = __nccwpck_require__(3871);
 const repair_js_1 = __nccwpck_require__(4828);
 const prompts_1 = __nccwpck_require__(833);
 const cache_js_1 = __nccwpck_require__(6067);
-dotenv_1.default.config();
+const badge_js_1 = __nccwpck_require__(8987);
+const repair_js_2 = __nccwpck_require__(4828);
+const patcher_js_1 = __nccwpck_require__(7645);
+// ─────────────────────────────────────────────────────────────
+// UI Helpers
+// ─────────────────────────────────────────────────────────────
+const ui = {
+    brand: chalk_1.default.bold.cyan,
+    success: chalk_1.default.green,
+    error: chalk_1.default.red,
+    warn: chalk_1.default.yellow,
+    info: chalk_1.default.blue,
+    dim: chalk_1.default.dim,
+    bold: chalk_1.default.bold,
+    header: (text) => console.log(`\n${chalk_1.default.bold.cyan('›')} ${chalk_1.default.bold(text)}`),
+    step: (num, lang) => chalk_1.default.dim(`[${num}]`) + chalk_1.default.cyan(` ${lang}`),
+    divider: () => console.log(chalk_1.default.dim('─'.repeat(50))),
+    pass: () => chalk_1.default.bgGreen.black(' PASS '),
+    fail: () => chalk_1.default.bgRed.white(' FAIL '),
+};
 const program = new commander_1.Command();
 program
     .name('doc-verify')
-    .description('CLI to test documentation code snippets')
+    .description('Verify documentation code snippets')
     .version('0.0.1');
 program
     .command('run')
-    .argument('<file>', 'path to the markdown file to test')
-    .option('-l, --lang <language>', 'language to filter (e.g. js, py)')
+    .argument('<file>', 'markdown file to verify')
+    .option('-l, --lang <language>', 'filter by language')
     .action(async (file, options) => {
-    console.log(chalk_1.default.blue(`\n🔍 Parsing file: ${file}`));
-    try {
-        // 1. Extract
-        const allSnippets = (0, extracts_js_1.extractSnippets)(file);
-        // 2. Filter (if user specified --lang)
-        const targetSnippets = options.lang
-            ? allSnippets.filter(s => s.language === options.lang)
-            : allSnippets;
-        if (targetSnippets.length === 0) {
-            console.log(chalk_1.default.yellow('No code snippets found matching your criteria.'));
-            return;
-        }
-        console.log(chalk_1.default.green(`✓ Found ${targetSnippets.length} snippets.\n`));
-        // 3. Repair all snippets in parallel
-        console.log(chalk_1.default.blue.bold(`--- Repairing Snippets ---\n`));
-        const repairedSnippets = await Promise.all(targetSnippets.map(async (snippet, index) => {
-            console.log(chalk_1.default.yellow(`🤖 Repairing #${index + 1} [${snippet.language}]...`));
-            const executableCode = await (0, repair_js_1.repairSnippet)(index + 1, snippet.code, snippet.language);
-            return { index, snippet, executableCode };
-        }));
-        // 4. Execute snippets with interactive error handling
-        console.log(chalk_1.default.blue.bold(`\n--- Running Repaired Snippets ---\n`));
-        for (let i = 0; i < repairedSnippets.length; i++) {
-            const { index, snippet } = repairedSnippets[i];
-            let executableCode = repairedSnippets[i].executableCode;
-            let shouldContinue = true;
-            while (shouldContinue) {
-                console.log(chalk_1.default.blue(`\n💻 Running snippet #${index + 1} [${snippet.language}]`));
-                const result = await (0, runner_js_1.runner)(executableCode, snippet.language);
-                if (result.success) {
-                    console.log(chalk_1.default.green('✅ Success!'));
-                    console.log(chalk_1.default.gray('Output:\n'), result.output);
-                    shouldContinue = false; // Move to next snippet
-                }
-                else {
-                    console.log(chalk_1.default.red('❌ Failed!'));
-                    console.log(chalk_1.default.red('Error:'), result.error);
-                    const action = await (0, prompts_1.select)({
-                        message: `What do you want to do?`,
-                        choices: [
-                            { name: '🔍 View Details', value: 'details' },
-                            { name: '🔄 Retry with AI', value: 'retry' },
-                            { name: '🔄 Clear Cache & Retry', value: 'clear' },
-                            { name: '⏭️  Skip', value: 'skip' },
-                            { name: '🚪 Exit', value: 'exit' }
-                        ]
-                    });
-                    switch (action) {
-                        case 'details':
-                            console.log(chalk_1.default.cyan('\n📝 Original Code:'));
-                            console.log(snippet.code);
-                            console.log(chalk_1.default.cyan('\n📝 Repaired Code:'));
-                            console.log(executableCode);
-                            console.log(chalk_1.default.cyan('\n📝 Error Output:'));
-                            console.log(result.output || result.error);
-                            const nextAction = await (0, prompts_1.select)({
-                                message: `What do you want to do?`,
-                                choices: [
-                                    { name: 'Debug with AI', value: 'debug' },
-                                    { name: 'Back', value: 'back' },
-                                ]
-                            });
-                            if (nextAction === 'debug') {
-                                console.log(chalk_1.default.yellow('\n🐞 Invoking AI debugger...'));
-                                const debugInfo = await (0, repair_js_1.debug)(executableCode, snippet.language);
-                                console.log(debugInfo);
-                            }
-                            else if (nextAction === 'back') {
+    console.log();
+    console.log(ui.brand('  doc-verify'));
+    ui.divider();
+    console.log(ui.dim(`  File: ${file}`));
+    if (options.lang)
+        console.log(ui.dim(`  Filter: ${options.lang}`));
+    let shouldRestart = true;
+    while (shouldRestart) {
+        shouldRestart = false;
+        try {
+            const allSnippets = (0, extracts_js_1.extractSnippets)(file);
+            const targetSnippets = options.lang
+                ? allSnippets.filter(s => s.language === options.lang)
+                : allSnippets;
+            if (targetSnippets.length === 0) {
+                console.log(ui.warn('\n  No snippets found.\n'));
+                return;
+            }
+            console.log(ui.dim(`  Snippets: ${targetSnippets.length}\n`));
+            // Repair phase - run in parallel but collect results silently
+            ui.header('Preparing');
+            process.stdout.write(ui.dim('  Repairing snippets... '));
+            const repairedSnippets = await Promise.all(targetSnippets.map(async (snippet, index) => {
+                const executableCode = await (0, repair_js_1.repairSnippet)(index + 1, snippet.code, snippet.language);
+                return { index, snippet, executableCode };
+            }));
+            console.log(ui.success('done'));
+            // Execute phase
+            ui.header('Running');
+            let passed = 0;
+            let failed = 0;
+            snippetLoop: for (let i = 0; i < repairedSnippets.length; i++) {
+                const { index, snippet } = repairedSnippets[i];
+                let executableCode = repairedSnippets[i].executableCode;
+                let shouldContinue = true;
+                while (shouldContinue) {
+                    process.stdout.write(ui.dim(`  ${index + 1}. ${snippet.language} `));
+                    const result = await (0, runner_js_1.runner)(executableCode, snippet.language);
+                    if (result.success) {
+                        console.log(ui.pass());
+                        if (result.output?.trim()) {
+                            console.log(ui.dim(`     ${result.output.trim().split('\n').join('\n     ')}`));
+                        }
+                        passed++;
+                        shouldContinue = false;
+                    }
+                    else {
+                        console.log(ui.fail());
+                        console.log(ui.error(`     ${result.error}`));
+                        failed++;
+                        const action = await (0, prompts_1.select)({
+                            message: 'Action',
+                            choices: [
+                                { name: 'Auto-fix', value: 'fix' },
+                                { name: 'Details', value: 'details' },
+                                { name: 'Retry', value: 'retry' },
+                                { name: 'Clear cache', value: 'clear' },
+                                { name: 'Skip', value: 'skip' },
+                                { name: 'Exit', value: 'exit' }
+                            ]
+                        });
+                        switch (action) {
+                            case 'fix':
+                                console.log(ui.dim('\n  Generating fix...'));
+                                const cleanCode = await (0, repair_js_2.generateCleanFix)(snippet.code, result.error || 'Unknown Error', snippet.language);
+                                ui.divider();
+                                console.log(cleanCode);
+                                ui.divider();
+                                const confirm = await (0, prompts_1.select)({
+                                    message: 'Apply fix?',
+                                    choices: [{ name: 'Yes', value: true }, { name: 'No', value: false }]
+                                });
+                                if (confirm) {
+                                    (0, patcher_js_1.applyPatch)(file, snippet.line, snippet.code, cleanCode);
+                                    console.log(ui.success('  Applied.\n'));
+                                    shouldRestart = true;
+                                    break snippetLoop;
+                                }
                                 break;
-                            }
-                            break;
-                        case 'retry':
-                            console.log(chalk_1.default.yellow('\n🤖 Re-invoking AI repair...'));
-                            executableCode = await (0, repair_js_1.repairSnippet)(index + 1, snippet.code, snippet.language);
-                            // Loop continues, will run again
-                            break;
-                        case 'clear':
-                            console.log(chalk_1.default.yellow('\n🗑️  Clearing cache and re-invoking AI repair...'));
-                            (0, cache_js_1.clearCache)(snippet.code, index + 1);
-                            executableCode = await (0, repair_js_1.repairSnippet)(index + 1, snippet.code, snippet.language);
-                            // Loop continues, will run again
-                            break;
-                        case 'skip':
-                            console.log(chalk_1.default.yellow('Skipping...'));
-                            shouldContinue = false;
-                            break;
-                        case 'exit':
-                            console.log(chalk_1.default.blue('👋 Exiting.'));
-                            process.exit(0);
+                            case 'details':
+                                console.log(ui.dim('\n  ── Original ──'));
+                                console.log(snippet.code);
+                                console.log(ui.dim('\n  ── Repaired ──'));
+                                console.log(executableCode);
+                                console.log(ui.dim('\n  ── Error ──'));
+                                console.log(result.output || result.error);
+                                const nextAction = await (0, prompts_1.select)({
+                                    message: 'Action',
+                                    choices: [
+                                        { name: 'Debug with AI', value: 'debug' },
+                                        { name: 'Back', value: 'back' },
+                                    ]
+                                });
+                                if (nextAction === 'debug') {
+                                    console.log(ui.dim('\n  Analyzing...\n'));
+                                    const errorOutput = result.output || result.error || 'Unknown error';
+                                    const debugInfo = await (0, repair_js_1.debug)(snippet.code, executableCode, errorOutput, snippet.language);
+                                    console.log(debugInfo);
+                                }
+                                break;
+                            case 'retry':
+                                shouldRestart = true;
+                                break snippetLoop;
+                            case 'clear':
+                                (0, cache_js_1.clearCache)(snippet.code);
+                                console.log(ui.dim('  Cache cleared.'));
+                                shouldRestart = true;
+                                break snippetLoop;
+                            case 'skip':
+                                shouldContinue = false;
+                                break;
+                            case 'exit':
+                                process.exit(0);
+                        }
                     }
                 }
             }
+            // Summary
+            if (!shouldRestart) {
+                ui.divider();
+                if (failed === 0) {
+                    (0, badge_js_1.updateBadge)(file);
+                    console.log(ui.success(`  ✓ ${passed} passed`));
+                }
+                else {
+                    console.log(`  ${ui.success(`${passed} passed`)} ${ui.error(`${failed} failed`)}`);
+                }
+                console.log();
+            }
         }
-    }
-    catch (err) {
-        console.error(chalk_1.default.red(`Error: ${err.message}`));
-    }
-    finally {
-        console.log(chalk_1.default.blue('\n🏁 Done.\n'));
+        catch (err) {
+            console.error(ui.error(`\n  Error: ${err.message}\n`));
+            shouldRestart = false;
+        }
     }
 });
 program
     .command('clear')
-    .description('Clear the AI repair cache')
-    .option('-s, --snippet <snippet>', 'Clear cache for a specific code snippet')
+    .description('Clear cache')
     .action(() => {
     (0, cache_js_1.clearCache)();
-});
-program
-    .command('lint')
-    .description('Lint command (to be implemented)')
-    .action(() => {
-    console.log(chalk_1.default.yellow('Lint command is not yet implemented.'));
+    console.log(ui.success('  Cache cleared.\n'));
 });
 program.parse();
 
@@ -73152,11 +73310,11 @@ function extractSnippets(filePath) {
         throw new Error(`Could not read file: ${filePath}`);
     }
     const snippets = [];
-    // 2. Parse Markdown into an AST (Tree)
+    // 2. Parse Markdown into an AST (Tree). AST = Abstract Syntax Tree
     const tree = (0, unified_1.unified)()
         .use(remark_parse_1.default)
         .parse(fileContent);
-    // unified() creates a processor
+    // unified() creates a processor to which we can add plugins
     // .use(remarkParse) adds the markdown parser plugin
     // .parse(fileContent) parses the markdown content into an AST
     // 3. Walk the tree and find 'code' nodes
@@ -73194,11 +73352,15 @@ const docker = new dockerode_1.default();
 class OutputStream extends stream_1.Writable {
     data = [];
     _write(chunk, encoding, callback) {
-        this.data.push(chunk.toString());
+        // Docker multiplex stream has 8-byte headers; strip control characters
+        let text = chunk.toString();
+        // Remove Docker stream header bytes and control characters
+        text = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+        this.data.push(text);
         callback();
     }
     getOutput() {
-        return this.data.join('');
+        return this.data.join('').trim();
     }
 }
 /**
@@ -73257,26 +73419,18 @@ class BaseRunner {
         const exists = images.some(img => img.RepoTags?.includes(imageName));
         if (exists)
             return;
-        console.log(`⬇️  Pulling Docker image ${imageName}... (this happens once)`);
         await new Promise((resolve, reject) => {
             docker.pull(imageName, (err, stream) => {
                 if (err)
                     return reject(err);
-                docker.modem.followProgress(stream, onFinished, onProgress);
+                docker.modem.followProgress(stream, onFinished);
                 function onFinished(err, output) {
                     if (err)
                         return reject(err);
                     resolve(output);
                 }
-                function onProgress(event) {
-                    while (event) {
-                        console.log(".");
-                        break;
-                    }
-                }
             });
         });
-        console.log('✅ Image downloaded.');
     }
 }
 exports.BaseRunner = BaseRunner;
@@ -73644,6 +73798,72 @@ class TypeScriptRunner extends base_runner_1.BaseRunner {
     }
 }
 exports.TypeScriptRunner = TypeScriptRunner;
+
+
+/***/ }),
+
+/***/ 8987:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.updateBadge = updateBadge;
+const fs_1 = __importDefault(__nccwpck_require__(9896));
+function updateBadge(filePath) {
+    if (!fs_1.default.existsSync(filePath))
+        return;
+    let content = fs_1.default.readFileSync(filePath, 'utf-8');
+    // 1. Get today's date (e.g., "Jan_07")
+    const date = new Date();
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }).replace(/ /g, '_');
+    const badgeImage = `![Verified](https://img.shields.io/badge/Docs_Verified-${dateStr}-2ea44f)`;
+    const fullBadgeLine = `${badgeImage}`;
+    const badgeRegex = /!\[Verified\]\(https:\/\/img\.shields\.io\/badge\/Docs_Verified-[^)]+-2ea44f\)/;
+    if (badgeRegex.test(content)) {
+        // Replace existing badge
+        content = content.replace(badgeRegex, fullBadgeLine);
+    }
+    else {
+        // ➕ Add badge at top
+        content = `${fullBadgeLine}\n\n${content}`;
+    }
+    fs_1.default.writeFileSync(filePath, content, 'utf-8');
+}
+
+
+/***/ }),
+
+/***/ 7645:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.applyPatch = applyPatch;
+const fs_1 = __importDefault(__nccwpck_require__(9896));
+function applyPatch(filePath, lineStart, oldCode, newCode) {
+    const fileContent = fs_1.default.readFileSync(filePath, 'utf-8');
+    const lines = fileContent.split('\n');
+    // The Parser gives us the line number where the "```javascript" starts.
+    // The actual code usually starts on lineStart + 1.
+    // We need to count how many lines the OLD code took up
+    const oldLinesCount = oldCode.split('\n').length;
+    // Replace the lines
+    // Note: lineStart is 1-based index from parser, array is 0-based.
+    // We assume the code block content starts 1 line after the opening ```
+    const startIdx = lineStart;
+    // Remove old lines
+    lines.splice(startIdx, oldLinesCount, ...newCode.split('\n'));
+    // Write back
+    fs_1.default.writeFileSync(filePath, lines.join('\n'), 'utf-8');
+}
 
 
 /***/ }),

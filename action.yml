@@ -27,18 +27,6 @@ runs:
       with:
         node-version: 20
 
-    # - name: Install Dependencies
-    #   shell: bash
-    #   run: |
-    #     cd ${{ github.action_path }}
-    #     npm install
-
-    # - name: Build Project
-    #   shell: bash
-    #   run: |
-    #     cd ${{ github.action_path }}
-    #     npm run build
-
     - name: Run DocVerify
       shell: bash
       env:

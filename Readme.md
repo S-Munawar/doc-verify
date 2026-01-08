@@ -6,91 +6,172 @@ Welcome to my library.
 
 ## Code Examples
 
-### JavaScript
+### JavaScript - Fetch API
 ```javascript
-Here is an example of how to use my library in different languages:
-
 // This fetches data from a real URL
 const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');
 const data = await res.json();
-
 console.log('Got data:', data);
 ```
 
-### JavaScript
+### JavaScript - Simple
 ```javascript
 console.log('Doc-Verify')
 ```
 
-### TypeScript
+### JavaScript - Array Operations
+```javascript
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map(n => n * 2);
+console.log('Doubled:', doubled);
+```
+
+### TypeScript - Basic
 ```typescript
-console.log('Doc-Verify')
+const message: string = 'Hello TypeScript';
+console.log(message);
 ```
 
+### TypeScript - Interface
+```typescript
+interface User {
+  name: string;
+  age: number;
+}
 
+const user: User = { name: 'Alice', age: 30 };
+console.log(`User: ${user.name}, Age: ${user.age}`);
+```
 
-<!-- ### Ruby
+### Python - Hello World
+```python
+print("Hello from Python!")
+```
+
+### Python - List Comprehension
+```python
+numbers = [1, 2, 3, 4, 5]
+squares = [x**2 for x in numbers]
+print(f"Squares: {squares}")
+```
+
+### Python - Class
+```python
+class Calculator:
+    def add(self, a, b):
+        return a + b
+
+calc = Calculator()
+print(f"2 + 3 = {calc.add(2, 3)}")
+```
+
+### Go - Hello World
+```go
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello from Go!")
+}
+```
+
+### Go - Variables
+```go
+package main
+
+import "fmt"
+
+func main() {
+    name := "Gopher"
+    age := 10
+    fmt.Printf("Name: %s, Age: %d\n", name, age)
+}
+```
+
+### Rust - Hello World
+```rust
+fn main() {
+    println!("Hello from Rust!");
+}
+```
+
+### Rust - Variables
+```rust
+fn main() {
+    let x = 5;
+    let y = 10;
+    println!("Sum: {}", x + y);
+}
+```
+
+### Ruby - Hello World
 ```ruby
-puts 'Doc-Verify'
+puts 'Hello from Ruby!'
 ```
 
-### Java
+### Ruby - Array
+```ruby
+fruits = ['apple', 'banana', 'cherry']
+fruits.each { |f| puts f }
+```
+
+### Java - Hello World
 ```java
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Doc-Verify");
+        System.out.println("Hello from Java!");
     }
 }
 ```
 
-### PHP
-```php
-<?php
-echo "Doc-Verify\n";
-?>
-```
-
-### Bash
-```bash
-echo "Doc-Verify"
-```
-
-### Rust
-```rust
-fn main() {
-    println!("Doc-Verify");
-}
-```
-
-### C
+### C - Hello World
 ```c
 #include <stdio.h>
 
 int main() {
-    printff("Doc-Verify\n");
+    printf("Hello from C!\n");
     return 0;
 }
 ```
 
-### C++
+### C++ - Hello World
 ```cpp
 #include <iostream>
 
 int main() {
-    std::cout << "Doc-Verify" << std::endl;
+    std::cout << "Hello from C++!" << std::endl;
     return 0;
 }
 ```
 
-### Perl
-```perl
-print "Doc-Verify\n";
+### Bash - Hello World
+```bash
+echo "Hello from Bash!"
 ```
 
-### Lua
+### Bash - Variables
+```bash
+name="World"
+echo "Hello, $name!"
+```
+
+### PHP - Hello World
+```php
+<?php
+echo "Hello from PHP!\n";
+?>
+```
+
+### Perl - Hello World
+```perl
+print "Hello from Perl!\n";
+```
+
+### Lua - Hello World
 ```lua
-print("Doc-Verify")
-``` -->
+print("Hello from Lua!")
+```
 
 ---
 

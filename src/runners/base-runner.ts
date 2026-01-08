@@ -1,7 +1,5 @@
 import Docker from 'dockerode';
 import { Writable } from 'stream';
-import { NETWORK_SHIM } from '../engine/mocks/network-shim';
-import { TIMEOUT } from 'dns';
 
 const docker = new Docker();
 
@@ -50,8 +48,7 @@ export abstract class BaseRunner {
      * Override in subclasses if needed (e.g., wrapping code).
      */
     preprocessCode(code: string): string {
-        const finalCode = NETWORK_SHIM + '\n' + code;
-        return finalCode;
+        return code;
     }
 
     /**

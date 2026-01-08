@@ -1,4 +1,5 @@
 import { BaseRunner } from './base-runner';
+import { NETWORK_SHIM } from '../engine/mocks/network-shim';
 
 export class JavaScriptRunner extends BaseRunner {
     protected image = 'node:18-alpine';
@@ -6,5 +7,9 @@ export class JavaScriptRunner extends BaseRunner {
 
     getExecuteCommand(): string {
         return `node ${this.inputFile}`;
+    }
+
+    preprocessCode(code: string): string {
+        return NETWORK_SHIM + '\n' + code;
     }
 }
