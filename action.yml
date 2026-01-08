@@ -1,6 +1,9 @@
-name: 'Doc Verify'
+name: 'DocVerify'
 description: 'Verifies documentation code snippets by running them in sandboxed containers.'
 author: 'Shaik Abdul Munawar'
+branding:
+  icon: check-circle
+  color: green
 inputs:
   file:
     description: 'The markdown file to verify'
