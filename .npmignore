@@ -1,0 +1,30 @@
+# Source files
+src/
+
+# Config files
+tsconfig.json
+.env
+.env.*
+
+# Development
+node_modules/
+.vscode/
+.idea/
+
+# Cache
+.docverify-cache.json
+
+# Git
+.git/
+.gitignore
+
+# Examples and docs
+examples.md
+
+# Lock files
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Build artifacts (keep dist/)
+*.tsbuildinfo

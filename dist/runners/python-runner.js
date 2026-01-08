@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PythonRunner = void 0;
-const base_runner_1 = require("./base-runner");
-class PythonRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = require("@/runners/base-runner.js");
+class PythonRunner extends base_runner_js_1.BaseRunner {
     image = 'python:3.11-alpine';
     inputFile = 'app.py';
     getExecuteCommand() {

@@ -72902,9 +72902,8 @@ exports.repairSnippet = repairSnippet;
 exports.debug = debug;
 exports.generateCleanFix = generateCleanFix;
 const openai_1 = __importDefault(__nccwpck_require__(3954));
-const cache_1 = __nccwpck_require__(6067);
+const cache_js_1 = __nccwpck_require__(6067);
 const prompt_js_1 = __nccwpck_require__(751);
-const prompt_js_2 = __nccwpck_require__(751);
 // Lazy-initialized OpenAI client
 let _openai = null;
 function getOpenAI() {
@@ -72920,18 +72919,18 @@ function getOpenAI() {
 const languagePatterns = {
     javascript: [/\(async\s*\(/, /async\s+(?:function|\()/, /const\s+\w/, /let\s+\w/, /var\s+\w/, /function\s+\w/, /import\s+/, /export\s+/, /module\./, /require\s*\(/],
     typescript: [/\(async\s*\(/, /async\s+(?:function|\()/, /const\s+\w/, /let\s+\w/, /var\s+\w/, /function\s+\w/, /import\s+/, /export\s+/, /interface\s+/, /type\s+\w/],
-    python: [/^import\s+/m, /^from\s+\w+\s+import/, /^class\s+\w/, /^def\s+\w/, /^async\s+def/, /^print\s*\(/, /^if\s+__name__/],
-    go: [/^package\s+\w/m, /^import\s+/, /^func\s+\w/, /^type\s+\w/],
-    java: [/^package\s+/, /^import\s+/, /^public\s+class/, /^class\s+\w/],
-    rust: [/^use\s+/, /^fn\s+main/, /^fn\s+\w/, /^struct\s+/, /^impl\s+/],
-    ruby: [/^require\s+['"]/, /^class\s+\w/, /^def\s+\w/, /^puts\s+/, /^print\s+/],
-    php: [/<\?php/, /^class\s+\w/, /^function\s+\w/, /^\$\w+\s*=/],
-    bash: [/^#!/, /^echo\s+/, /^export\s+\w/, /^\w+\s*\(\)\s*\{/],
-    shell: [/^#!/, /^echo\s+/, /^export\s+\w/],
-    c: [/^#include\s*</, /^int\s+main/, /^void\s+\w/],
-    cpp: [/^#include\s*</, /^int\s+main/, /^class\s+\w/, /^namespace\s+/],
-    perl: [/^use\s+/, /^my\s+/, /^sub\s+\w/, /^print\s+/],
-    lua: [/^local\s+/, /^function\s+\w/, /^print\s*\(/],
+    python: [/^import\s+/m, /^from\s+\w+\s+import/m, /^class\s+\w/m, /^def\s+\w/m, /^async\s+def/m, /^print\s*\(/m, /^if\s+__name__/m],
+    go: [/^package\s+\w/m, /^import\s+/m, /^func\s+\w/m, /^type\s+\w/m],
+    java: [/^package\s+/m, /^import\s+/m, /^public\s+class/m, /^class\s+\w/m],
+    rust: [/^use\s+/m, /^fn\s+main/m, /^fn\s+\w/m, /^struct\s+/m, /^impl\s+/m],
+    ruby: [/^require\s+['"]/m, /^class\s+\w/m, /^def\s+\w/m, /^puts\s+/m, /^print\s+/m],
+    php: [/<\?php/, /^class\s+\w/m, /^function\s+\w/m, /^\$\w+\s*=/m],
+    bash: [/^#!/m, /^echo\s+/m, /^export\s+\w/m, /^\w+\s*\(\)\s*\{/m],
+    shell: [/^#!/m, /^echo\s+/m, /^export\s+\w/m],
+    c: [/^#include\s*</m, /^int\s+main/m, /^void\s+\w/m],
+    cpp: [/^#include\s*</m, /^int\s+main/m, /^class\s+\w/m, /^namespace\s+/m],
+    perl: [/^use\s+/m, /^my\s+/m, /^sub\s+\w/m, /^print\s+/m],
+    lua: [/^local\s+/m, /^function\s+\w/m, /^print\s*\(/m],
 };
 // Fallback patterns if language not found
 const genericPatterns = [/^\/\//m, /^\/\*/m, /^#[^!]/m];
@@ -72961,7 +72960,7 @@ async function repairSnippet(index, originalCode, language = 'javascript') {
     const OPENAI_MODEL_NAME = process.env.OPENAI_MODEL_NAME;
     try {
         // Check cache first
-        const cached = (0, cache_1.getCachedRepair)(originalCode);
+        const cached = (0, cache_js_1.getCachedRepair)(originalCode);
         if (cached) {
             return cached;
         }
@@ -72984,7 +72983,7 @@ async function repairSnippet(index, originalCode, language = 'javascript') {
             repairedCode = extractCode(repairedCode, language);
         }
         repairedCode = repairedCode.trim();
-        (0, cache_1.saveCachedRepair)(originalCode, repairedCode);
+        (0, cache_js_1.saveCachedRepair)(originalCode, repairedCode);
         return repairedCode;
     }
     catch (error) {
@@ -73004,7 +73003,7 @@ async function debug(originalCode, repairedCode, errorOutput, language = 'javasc
     return response.choices[0].message.content || "No debug information available.";
 }
 async function generateCleanFix(brokenCode, errorMsg, language = 'javascript') {
-    const prompt = (0, prompt_js_2.fixPrompt)(errorMsg, brokenCode);
+    const prompt = (0, prompt_js_1.fixPrompt)(errorMsg, brokenCode);
     const response = await getOpenAI().chat.completions.create({
         model: `${process.env.OPENAI_MODEL_NAME}`,
         messages: [
@@ -73073,13 +73072,13 @@ exports.NETWORK_SHIM = `
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.runner = runner;
-const runners_1 = __nccwpck_require__(498);
+const index_js_1 = __nccwpck_require__(498);
 /**
  * Runs a code snippet inside a secure Docker container.
  * Supports multiple languages through the modular runner architecture.
  */
 async function runner(code, language) {
-    const languageRunner = (0, runners_1.getRunner)(language);
+    const languageRunner = (0, index_js_1.getRunner)(language);
     if (!languageRunner) {
         return { success: false, output: '', error: `Unsupported language: ${language}` };
     }
@@ -73108,7 +73107,6 @@ const repair_js_1 = __nccwpck_require__(4828);
 const prompts_1 = __nccwpck_require__(833);
 const cache_js_1 = __nccwpck_require__(6067);
 const badge_js_1 = __nccwpck_require__(8987);
-const repair_js_2 = __nccwpck_require__(4828);
 const patcher_js_1 = __nccwpck_require__(7645);
 // ─────────────────────────────────────────────────────────────
 // UI Helpers
@@ -73201,7 +73199,7 @@ program
                         switch (action) {
                             case 'fix':
                                 console.log(ui.dim('\n  Generating fix...'));
-                                const cleanCode = await (0, repair_js_2.generateCleanFix)(snippet.code, result.error || 'Unknown Error', snippet.language);
+                                const cleanCode = await (0, repair_js_1.generateCleanFix)(snippet.code, result.error || 'Unknown Error', snippet.language);
                                 ui.divider();
                                 console.log(cleanCode);
                                 ui.divider();
@@ -73344,7 +73342,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BaseRunner = void 0;
 const dockerode_1 = __importDefault(__nccwpck_require__(3840));
 const stream_1 = __nccwpck_require__(2203);
-const network_shim_1 = __nccwpck_require__(1537);
 const docker = new dockerode_1.default();
 /**
  * Helper class to capture stream output into a string
@@ -73373,8 +73370,7 @@ class BaseRunner {
      * Override in subclasses if needed (e.g., wrapping code).
      */
     preprocessCode(code) {
-        const finalCode = network_shim_1.NETWORK_SHIM + '\n' + code;
-        return finalCode;
+        return code;
     }
     /**
      * Runs the code snippet inside a secure Docker container.
@@ -73445,8 +73441,8 @@ exports.BaseRunner = BaseRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.BashRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class BashRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class BashRunner extends base_runner_js_1.BaseRunner {
     image = 'alpine:latest';
     inputFile = 'script.sh';
     getExecuteCommand() {
@@ -73465,8 +73461,8 @@ exports.BashRunner = BashRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class CRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class CRunner extends base_runner_js_1.BaseRunner {
     image = 'gcc:13-bookworm';
     inputFile = 'main.c';
     getExecuteCommand() {
@@ -73485,8 +73481,8 @@ exports.CRunner = CRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CppRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class CppRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class CppRunner extends base_runner_js_1.BaseRunner {
     image = 'gcc:13-bookworm';
     inputFile = 'main.cpp';
     getExecuteCommand() {
@@ -73505,8 +73501,8 @@ exports.CppRunner = CppRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class GoRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class GoRunner extends base_runner_js_1.BaseRunner {
     image = 'golang:1.20-alpine';
     inputFile = 'main.go';
     getExecuteCommand() {
@@ -73528,61 +73524,61 @@ exports.BaseRunner = void 0;
 exports.getRunner = getRunner;
 exports.getSupportedLanguages = getSupportedLanguages;
 exports.getUniqueLanguages = getUniqueLanguages;
-const base_runner_1 = __nccwpck_require__(268);
-Object.defineProperty(exports, "BaseRunner", ({ enumerable: true, get: function () { return base_runner_1.BaseRunner; } }));
-const javascript_runner_1 = __nccwpck_require__(4482);
-const typescript_runner_1 = __nccwpck_require__(8714);
-const python_runner_1 = __nccwpck_require__(8697);
-const go_runner_1 = __nccwpck_require__(8541);
-const ruby_runner_1 = __nccwpck_require__(3011);
-const java_runner_1 = __nccwpck_require__(8683);
-const php_runner_1 = __nccwpck_require__(4849);
-const bash_runner_1 = __nccwpck_require__(7265);
-const rust_runner_1 = __nccwpck_require__(553);
-const c_runner_1 = __nccwpck_require__(9162);
-const cpp_runner_1 = __nccwpck_require__(9610);
-const perl_runner_1 = __nccwpck_require__(1036);
-const lua_runner_1 = __nccwpck_require__(8295);
+const base_runner_js_1 = __nccwpck_require__(268);
+Object.defineProperty(exports, "BaseRunner", ({ enumerable: true, get: function () { return base_runner_js_1.BaseRunner; } }));
+const javascript_runner_js_1 = __nccwpck_require__(4482);
+const typescript_runner_js_1 = __nccwpck_require__(8714);
+const python_runner_js_1 = __nccwpck_require__(8697);
+const go_runner_js_1 = __nccwpck_require__(8541);
+const ruby_runner_js_1 = __nccwpck_require__(3011);
+const java_runner_js_1 = __nccwpck_require__(8683);
+const php_runner_js_1 = __nccwpck_require__(4849);
+const bash_runner_js_1 = __nccwpck_require__(7265);
+const rust_runner_js_1 = __nccwpck_require__(553);
+const c_runner_js_1 = __nccwpck_require__(9162);
+const cpp_runner_js_1 = __nccwpck_require__(9610);
+const perl_runner_js_1 = __nccwpck_require__(1036);
+const lua_runner_js_1 = __nccwpck_require__(8295);
 /**
  * Map of language names/aliases to runner factory functions.
  */
 const runnerMap = new Map([
     // JavaScript
-    ['js', () => new javascript_runner_1.JavaScriptRunner()],
-    ['javascript', () => new javascript_runner_1.JavaScriptRunner()],
+    ['js', () => new javascript_runner_js_1.JavaScriptRunner()],
+    ['javascript', () => new javascript_runner_js_1.JavaScriptRunner()],
     // TypeScript
-    ['ts', () => new typescript_runner_1.TypeScriptRunner()],
-    ['typescript', () => new typescript_runner_1.TypeScriptRunner()],
+    ['ts', () => new typescript_runner_js_1.TypeScriptRunner()],
+    ['typescript', () => new typescript_runner_js_1.TypeScriptRunner()],
     // Python
-    ['py', () => new python_runner_1.PythonRunner()],
-    ['python', () => new python_runner_1.PythonRunner()],
+    ['py', () => new python_runner_js_1.PythonRunner()],
+    ['python', () => new python_runner_js_1.PythonRunner()],
     // Go
-    ['go', () => new go_runner_1.GoRunner()],
-    ['golang', () => new go_runner_1.GoRunner()],
+    ['go', () => new go_runner_js_1.GoRunner()],
+    ['golang', () => new go_runner_js_1.GoRunner()],
     // Ruby
-    ['rb', () => new ruby_runner_1.RubyRunner()],
-    ['ruby', () => new ruby_runner_1.RubyRunner()],
+    ['rb', () => new ruby_runner_js_1.RubyRunner()],
+    ['ruby', () => new ruby_runner_js_1.RubyRunner()],
     // Java
-    ['java', () => new java_runner_1.JavaRunner()],
+    ['java', () => new java_runner_js_1.JavaRunner()],
     // PHP
-    ['php', () => new php_runner_1.PhpRunner()],
+    ['php', () => new php_runner_js_1.PhpRunner()],
     // Bash/Shell
-    ['bash', () => new bash_runner_1.BashRunner()],
-    ['sh', () => new bash_runner_1.BashRunner()],
-    ['shell', () => new bash_runner_1.BashRunner()],
+    ['bash', () => new bash_runner_js_1.BashRunner()],
+    ['sh', () => new bash_runner_js_1.BashRunner()],
+    ['shell', () => new bash_runner_js_1.BashRunner()],
     // Rust
-    ['rust', () => new rust_runner_1.RustRunner()],
-    ['rs', () => new rust_runner_1.RustRunner()],
+    ['rust', () => new rust_runner_js_1.RustRunner()],
+    ['rs', () => new rust_runner_js_1.RustRunner()],
     // C
-    ['c', () => new c_runner_1.CRunner()],
+    ['c', () => new c_runner_js_1.CRunner()],
     // C++
-    ['cpp', () => new cpp_runner_1.CppRunner()],
-    ['c++', () => new cpp_runner_1.CppRunner()],
+    ['cpp', () => new cpp_runner_js_1.CppRunner()],
+    ['c++', () => new cpp_runner_js_1.CppRunner()],
     // Perl
-    ['perl', () => new perl_runner_1.PerlRunner()],
-    ['pl', () => new perl_runner_1.PerlRunner()],
+    ['perl', () => new perl_runner_js_1.PerlRunner()],
+    ['pl', () => new perl_runner_js_1.PerlRunner()],
     // Lua
-    ['lua', () => new lua_runner_1.LuaRunner()],
+    ['lua', () => new lua_runner_js_1.LuaRunner()],
 ]);
 /**
  * Gets a runner instance for the specified language.
@@ -73629,8 +73625,8 @@ function getUniqueLanguages() {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JavaRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class JavaRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class JavaRunner extends base_runner_js_1.BaseRunner {
     image = 'eclipse-temurin:17-alpine';
     inputFile = 'Main.java';
     getExecuteCommand() {
@@ -73649,12 +73645,16 @@ exports.JavaRunner = JavaRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.JavaScriptRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class JavaScriptRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+const network_shim_js_1 = __nccwpck_require__(1537);
+class JavaScriptRunner extends base_runner_js_1.BaseRunner {
     image = 'node:18-alpine';
     inputFile = 'script.js';
     getExecuteCommand() {
         return `node ${this.inputFile}`;
+    }
+    preprocessCode(code) {
+        return network_shim_js_1.NETWORK_SHIM + '\n' + code;
     }
 }
 exports.JavaScriptRunner = JavaScriptRunner;
@@ -73669,8 +73669,8 @@ exports.JavaScriptRunner = JavaScriptRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.LuaRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class LuaRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class LuaRunner extends base_runner_js_1.BaseRunner {
     image = 'nickblah/lua:5.4-alpine';
     inputFile = 'script.lua';
     getExecuteCommand() {
@@ -73689,8 +73689,8 @@ exports.LuaRunner = LuaRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PerlRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class PerlRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class PerlRunner extends base_runner_js_1.BaseRunner {
     image = 'perl:5.38-slim';
     inputFile = 'script.pl';
     getExecuteCommand() {
@@ -73709,8 +73709,8 @@ exports.PerlRunner = PerlRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PhpRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class PhpRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class PhpRunner extends base_runner_js_1.BaseRunner {
     image = 'php:8.2-cli-alpine';
     inputFile = 'script.php';
     getExecuteCommand() {
@@ -73729,8 +73729,8 @@ exports.PhpRunner = PhpRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PythonRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class PythonRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class PythonRunner extends base_runner_js_1.BaseRunner {
     image = 'python:3.11-alpine';
     inputFile = 'app.py';
     getExecuteCommand() {
@@ -73749,8 +73749,8 @@ exports.PythonRunner = PythonRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RubyRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class RubyRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class RubyRunner extends base_runner_js_1.BaseRunner {
     image = 'ruby:3.2-alpine';
     inputFile = 'script.rb';
     getExecuteCommand() {
@@ -73769,8 +73769,8 @@ exports.RubyRunner = RubyRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.RustRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class RustRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+class RustRunner extends base_runner_js_1.BaseRunner {
     image = 'rust:1.75-alpine';
     inputFile = 'main.rs';
     getExecuteCommand() {
@@ -73789,12 +73789,16 @@ exports.RustRunner = RustRunner;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TypeScriptRunner = void 0;
-const base_runner_1 = __nccwpck_require__(268);
-class TypeScriptRunner extends base_runner_1.BaseRunner {
+const base_runner_js_1 = __nccwpck_require__(268);
+const network_shim_js_1 = __nccwpck_require__(1537);
+class TypeScriptRunner extends base_runner_js_1.BaseRunner {
     image = 'denoland/deno:latest';
     inputFile = 'script.ts';
     getExecuteCommand() {
         return `deno run --allow-all ${this.inputFile}`;
+    }
+    preprocessCode(code) {
+        return network_shim_js_1.NETWORK_SHIM + '\n' + code;
     }
 }
 exports.TypeScriptRunner = TypeScriptRunner;

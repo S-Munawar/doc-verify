@@ -13,11 +13,15 @@ const docker = new dockerode_1.default();
 class OutputStream extends stream_1.Writable {
     data = [];
     _write(chunk, encoding, callback) {
-        this.data.push(chunk.toString());
+        // Docker multiplex stream has 8-byte headers; strip control characters
+        let text = chunk.toString();
+        // Remove Docker stream header bytes and control characters
+        text = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+        this.data.push(text);
         callback();
     }
     getOutput() {
-        return this.data.join('');
+        return this.data.join('').trim();
     }
 }
 /**
@@ -40,7 +44,7 @@ class BaseRunner {
             await this.ensureImage(this.image);
             // Preprocess the code if needed
             const processedCode = this.preprocessCode(code);
-            // Base64 encode the code to avoid shell escaping issues
+            // Base64 encode the code to avoid shell escaping issues.
             const b64Code = Buffer.from(processedCode).toString('base64');
             const execCmd = this.getExecuteCommand();
             const command = `echo "${b64Code}" | base64 -d > ${this.inputFile} && ${execCmd}`;
@@ -75,23 +79,18 @@ class BaseRunner {
         const exists = images.some(img => img.RepoTags?.includes(imageName));
         if (exists)
             return;
-        console.log(`⬇️  Pulling Docker image ${imageName}... (this happens once)`);
         await new Promise((resolve, reject) => {
             docker.pull(imageName, (err, stream) => {
                 if (err)
                     return reject(err);
-                docker.modem.followProgress(stream, onFinished, onProgress);
+                docker.modem.followProgress(stream, onFinished);
                 function onFinished(err, output) {
                     if (err)
                         return reject(err);
                     resolve(output);
                 }
-                function onProgress(event) {
-                    // Optional: print loading progress
-                }
             });
         });
-        console.log('✅ Image downloaded.');
     }
 }
 exports.BaseRunner = BaseRunner;

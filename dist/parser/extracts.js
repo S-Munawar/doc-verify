@@ -19,11 +19,11 @@ function extractSnippets(filePath) {
         throw new Error(`Could not read file: ${filePath}`);
     }
     const snippets = [];
-    // 2. Parse Markdown into an AST (Tree)
+    // 2. Parse Markdown into an AST (Tree). AST = Abstract Syntax Tree
     const tree = (0, unified_1.unified)()
         .use(remark_parse_1.default)
         .parse(fileContent);
-    // unified() creates a processor
+    // unified() creates a processor to which we can add plugins
     // .use(remarkParse) adds the markdown parser plugin
     // .parse(fileContent) parses the markdown content into an AST
     // 3. Walk the tree and find 'code' nodes
