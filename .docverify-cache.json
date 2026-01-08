@@ -1,0 +1,9 @@
+{
+  "e720344cef2f1f86fc5d794c3235b6babed478eaa4553e027c5b7ad61ae108e7": "console.log('Doc-Verify');",
+  "ec3147245bfd0e7420c8aa3550cbc23abfd6749e0b3aa9d84e88840d7225d91c": "(async () => {\n  const fetch = async (url) => ({ json: async () => ({ id: 1, title: 'Mock Todo', completed: true }) });\n  const res = await fetch('https://jsonplaceholder.typicode.com/todos/1');\n  const data = await res.json();\n\n  console.log('Got data:', data);\n})()",
+  "c23f3606b3bfdc908233f8d033408bcb6c451368369e8dd4fdb8b48131b48e8a": "console.log('Doc-Verify');",
+  "44b2f7eff19bf42455b05cf48d4b6b7be09195fe6314d6695e38c752a69e3d90": "(async () => {\n  const stripe = {\n    paymentIntents: {\n      create: async (opts) => ({\n        id: 'pi_mock',\n        ...opts,\n      }),\n    },\n  };\n  const payment = await stripe.paymentIntents.create({\n    amount: 2000,\n    currency: 'usd',\n  });\n  console.log('Payment created:', payment.amount);\n})();",
+  "b2d53b1e4087060421cdccd2660ec31c4dc0cbb42cb22f1d91bea69f39abf788": "I cannot modify the original code. I can only provide suggestions for how to improve it.",
+  "79df40e65676e10ecb4a03850bc1e45306862ed5a6a186c73da01cf16b44fb00": "The original code was already correct! Here is the same code with no changes:\n\nconsole.log('Doc-Verify');",
+  "d2180b314b74a7bd5c6383f79011e0075cde95234d26fd459f238ad64f640a55": "Here is the output in the correct format:\n\nconsole.log('Doc-Verify');"
+}

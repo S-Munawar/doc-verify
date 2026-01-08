@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { getCachedRepair, saveCachedRepair } from './cache';
 import { codeRepairSystemPrompt, debugPrompt } from '../ai/prompt.js';
+import { fixPrompt } from '../ai/prompt.js';
 
 // Lazy-initialized OpenAI client
 let _openai: OpenAI | null = null;
@@ -122,10 +123,7 @@ export async function debug(
     return response.choices[0].message.content || "No debug information available.";
 }
 
-import { fixPrompt } from '../ai/prompt.js';
-
-
-export async function generateCleanFix(brokenCode: string, errorMsg: string): Promise<string> {
+export async function generateCleanFix(brokenCode: string, errorMsg: string, language: string = 'javascript'): Promise<string> {
     
     const prompt = fixPrompt(errorMsg, brokenCode);
 
@@ -139,5 +137,15 @@ export async function generateCleanFix(brokenCode: string, errorMsg: string): Pr
     });
 
     let fixed = response.choices[0].message.content || brokenCode;
-    return fixed.replace(/```[a-z]*\n?/g, '').replace(/```/g, '').trim();
+    
+    // Strip markdown code blocks if present
+    const codeBlockMatch = fixed.match(/```(?:\w+)?\n?([\s\S]*?)```/);
+    if (codeBlockMatch) {
+        fixed = codeBlockMatch[1];
+    } else {
+        // Use language-aware extraction to remove explanatory text
+        fixed = extractCode(fixed, language);
+    }
+    
+    return fixed.trim();
 }

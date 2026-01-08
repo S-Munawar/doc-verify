@@ -124,7 +124,7 @@ program
                         switch (action) {
                             case 'fix':
                                 console.log(ui.dim('\n  Generating fix...'));
-                                const cleanCode = await generateCleanFix(snippet.code, result.error || 'Unknown Error');
+                                const cleanCode = await generateCleanFix(snippet.code, result.error || 'Unknown Error', snippet.language);
                                 ui.divider();
                                 console.log(cleanCode);
                                 ui.divider();

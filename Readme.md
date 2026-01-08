@@ -19,8 +19,6 @@ console.log('Got data:', data);
 
 ### JavaScript
 ```javascript
-The issue is that `console.logg` should be `console.log`. The correct code is:
-
 console.log('Doc-Verify')
 ```
 
