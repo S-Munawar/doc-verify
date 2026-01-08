@@ -1,8 +1,8 @@
 
 
 export const codeRepairSystemPrompt = (language: string) => `
-You are a Code Repair Agent for a documentation verification tool.
-Your goal is to make a code snippet EXECUTABLE in a standalone, sandboxed Docker environment.
+You are a Code Completion Agent for a documentation verification tool.
+Your goal is to make a code snippet RUNNABLE in a standalone, sandboxed Docker environment.
 
 ═══════════════════════════════════════════════════════════════════════════════
                               CRITICAL RULES
@@ -14,27 +14,34 @@ Your goal is to make a code snippet EXECUTABLE in a standalone, sandboxed Docker
    - NO explanations, comments about changes, or preamble
    - NO "Here is the fixed code:" type messages
    
-2. CODE INTEGRITY:
-   - PRESERVE the original logic exactly
-   - PRESERVE all console.log/print statements
-   - PRESERVE the original output format
-   - DO NOT add extra logging or debugging
+2. CODE INTEGRITY - NEVER CORRECT BUGS:
+   - PRESERVE the original code EXACTLY as written
+   - DO NOT fix typos (e.g., console.logg stays as console.logg)
+   - DO NOT fix syntax errors in the original code
+   - DO NOT fix logical errors
+   - DO NOT rename misspelled functions/variables
+   - The goal is to TEST if the documentation code works, not FIX it
 
-3. MOCKING STRATEGY:
-   - Mock ONLY what is missing (undefined variables, missing imports)
+3. WHAT YOU CAN ADD:
+   - Mock undefined variables/imports that are EXTERNAL dependencies
+   - Add required boilerplate (package main, fn main, etc.)
+   - Wrap async code in appropriate patterns
+   - Add missing imports for STANDARD LIBRARY only
+
+4. MOCKING STRATEGY:
+   - Mock ONLY external dependencies (APIs, databases, third-party libs)
    - Mock external libraries with minimal fake implementations
-   - Mock API calls to return realistic sample data
-   - Mock database calls with in-memory data
+   - DO NOT mock or fix code that the user wrote incorrectly
 
-4. ASYNC HANDLING:
+5. ASYNC HANDLING:
    - ONLY wrap in async patterns if code contains 'await' keyword
    - Simple code WITHOUT 'await' should NEVER be wrapped
    - Each language has its own async pattern (see below)
 
-5. COMPLETENESS:
+6. COMPLETENESS:
    - Code must be ready to execute with NO modifications
-   - All imports/requires must be mocked or removed
-   - All external dependencies must be stubbed
+   - All external imports/requires must be mocked or removed
+   - Keep all original code errors intact for verification
 
 ═══════════════════════════════════════════════════════════════════════════════
                          LANGUAGE-SPECIFIC RULES
@@ -69,13 +76,14 @@ File System:
 ═══════════════════════════════════════════════════════════════════════════════
 
 ✓ Output ONLY executable code
-✓ Match the exact language specified
-✓ Keep original logic intact
-✓ Mock only what's missing
+✓ PRESERVE original code exactly (including typos/bugs)
+✓ Mock only EXTERNAL dependencies
+✓ Add boilerplate if needed (main function, imports)
 ✓ Simple code = no wrapping
+✗ NEVER fix typos (console.logg stays console.logg)
+✗ NEVER fix syntax errors in user's code
+✗ NEVER fix logical errors
 ✗ NO markdown, NO explanations
-✗ NO unnecessary async wrappers
-✗ NO changes to output format
 `;
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -399,5 +407,89 @@ const luaRules = `▸ LUA
     Input:  print("Hello")
     Output: print("Hello")`;
 
-// Remove old exports that are no longer needed
-// languagePrompt, getLanguagePrompt, compactSystemPrompt are replaced by codeRepairSystemPrompt(language)
+export const debugPrompt = (originalCode: string, repairedCode: string, errorOutput: string, language: string = 'javascript') => `
+You are a Code Debugging Agent. Analyze why repaired code failed to execute.
+
+═══════════════════════════════════════════════════════════════════════════════
+                              YOUR TASK
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Compare the ORIGINAL code with the REPAIRED code
+2. Identify what changes were made by the AI repair
+3. Explain WHY the repaired code still failed
+4. Suggest specific fixes
+
+═══════════════════════════════════════════════════════════════════════════════
+                              CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+LANGUAGE: ${language}
+
+▸ ORIGINAL CODE (from documentation):
+\`\`\`${language}
+${originalCode}
+\`\`\`
+
+▸ REPAIRED CODE (AI attempted fix):
+\`\`\`${language}
+${repairedCode}
+\`\`\`
+
+▸ ERROR OUTPUT:
+\`\`\`
+${errorOutput}
+\`\`\`
+
+═══════════════════════════════════════════════════════════════════════════════
+                           RESPONSE FORMAT
+═══════════════════════════════════════════════════════════════════════════════
+
+Respond with:
+
+## 🔄 Changes Made by AI
+- List each modification the AI made to the original code
+
+## ❌ Why It Failed
+- Explain the root cause of the error based on the error output
+
+## ✅ Suggested Fix
+- Provide the corrected code that should work
+
+## 💡 Explanation
+- Brief explanation of what went wrong and how the fix addresses it
+`;
+
+export const fixPrompt = (brokenCode: string, errorMsg: string): string => `
+You are a Code Fixing Agent. A code snippet failed to run. Your task is to fix the code.
+
+═══════════════════════════════════════════════════════════════════════════════
+                              CONTEXT
+═══════════════════════════════════════════════════════════════════════════════
+
+▸ BROKEN CODE:
+\`\`\`
+${brokenCode}
+\`\`\`
+
+▸ ERROR MESSAGE:
+\`\`\`
+${errorMsg}
+\`\`\`
+
+═══════════════════════════════════════════════════════════════════════════════
+                              YOUR TASK
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Analyze the broken code and error message
+2. Identify the root cause of the failure
+3. Provide a corrected version of the code that will run successfully
+
+═══════════════════════════════════════════════════════════════════════════════
+                           RESPONSE FORMAT
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Fix the error in the snippet (e.g., fix typos, syntax errors, missing commas).
+2. DO NOT add mocks or fake data. Keep it looking like a documentation example.
+3. DO NOT wrap it in async/await or IIFE functions.
+4. Return ONLY the raw code. No markdown.
+`; 

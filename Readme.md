@@ -1,3 +1,5 @@
+![Verified](https://img.shields.io/badge/Docs_Verified-Jan_08-2ea44f)
+
 # My Library Documentation
 
 Welcome to my library.
@@ -17,13 +19,9 @@ console.log('Got data:', data);
 
 ### JavaScript
 ```javascript
-console.log('Doc-Verify')
-```
+The issue is that `console.logg` should be `console.log`. The correct code is:
 
-### Python
-```python
-print('Doc-Verify')
-throw new error("API"):
+console.log('Doc-Verify')
 ```
 
 ### TypeScript
@@ -31,16 +29,7 @@ throw new error("API"):
 console.log('Doc-Verify')
 ```
 
-### Go
-```go
-package main
 
-import "fmt"
-
-func main() {
-    fmt.Println("Doc-Verify")
-}
-```
 
 <!-- ### Ruby
 ```ruby

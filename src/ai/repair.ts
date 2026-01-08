@@ -1,15 +1,19 @@
 import OpenAI from 'openai';
-import dotenv from 'dotenv';
 import { getCachedRepair, saveCachedRepair } from './cache';
-import { codeRepairSystemPrompt } from '../ai/prompt.js';
+import { codeRepairSystemPrompt, debugPrompt } from '../ai/prompt.js';
 
-dotenv.config();
+// Lazy-initialized OpenAI client
+let _openai: OpenAI | null = null;
 
-// Configure OpenAI client to use Ollama endpoint
-const openai = new OpenAI({
-    baseURL: `${process.env.OPENAI_BASE_URL}/v1`,
-    apiKey: process.env.OPENAI_API_KEY,
-});
+function getOpenAI(): OpenAI {
+    if (!_openai) {
+        _openai = new OpenAI({
+            baseURL: `${process.env.OPENAI_BASE_URL}/v1`,
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+    }
+    return _openai;
+}
 
 // Language-specific code start patterns (ordered by priority within each language)
 const languagePatterns: Record<string, RegExp[]> = {
@@ -70,7 +74,7 @@ export async function repairSnippet(index: number, originalCode: string, languag
             return cached;
         }
 
-        const response = await openai.chat.completions.create({
+        const response = await getOpenAI().chat.completions.create({
             model: OPENAI_MODEL_NAME,
             messages: [
                 { role: "system", content: systemPrompt },
@@ -91,25 +95,49 @@ export async function repairSnippet(index: number, originalCode: string, languag
         }
         
         repairedCode = repairedCode.trim();
-        saveCachedRepair(originalCode, repairedCode, index);
+        saveCachedRepair(originalCode, repairedCode);
         return repairedCode;
 
     } catch (error) {
-        console.error("AI Repair Failed:", error);
         return originalCode; // Fallback to original
     }
 }
 
-export async function debug(originalCode: string, repairedCode: string, language: string = 'javascript'): Promise<string> {
-    const prompt = `The following code snippet was repaired but still fails to execute. Explain the errors in detail and suggest improvements.`;
+export async function debug(
+    originalCode: string, 
+    repairedCode: string, 
+    errorOutput: string,
+    language: string = 'javascript'
+): Promise<string> {
+    const prompt = debugPrompt(originalCode, repairedCode, errorOutput, language);
 
-    const response = await openai.chat.completions.create({
-            model: process.env.OPENAI_MODEL_NAME!,
-            messages: [
-                { role: "system", content: prompt },
-                { role: "user", content: originalCode }
-            ],
-            temperature: 0.1,
-        });
+    const response = await getOpenAI().chat.completions.create({
+        model: process.env.OPENAI_MODEL_NAME!,
+        messages: [
+            { role: "system", content: prompt },
+            { role: "user", content: "Analyze the failure and provide debugging insights." }
+        ],
+        temperature: 0.3,
+    });
     return response.choices[0].message.content || "No debug information available.";
+}
+
+import { fixPrompt } from '../ai/prompt.js';
+
+
+export async function generateCleanFix(brokenCode: string, errorMsg: string): Promise<string> {
+    
+    const prompt = fixPrompt(errorMsg, brokenCode);
+
+    const response = await getOpenAI().chat.completions.create({
+        model: `${process.env.OPENAI_MODEL_NAME!}`,
+        messages: [
+            { role: "system", content: prompt },
+            { role: "user", content: brokenCode }
+        ],
+        temperature: 0.1,
+    });
+
+    let fixed = response.choices[0].message.content || brokenCode;
+    return fixed.replace(/```[a-z]*\n?/g, '').replace(/```/g, '').trim();
 }

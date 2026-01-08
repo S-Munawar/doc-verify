@@ -1,159 +1,213 @@
 #!/usr/bin/env node
+import dotenv from 'dotenv';
+dotenv.config({ quiet: true });
+
 import { Command } from 'commander';
 import chalk from 'chalk';
-import dotenv from 'dotenv';
 import { extractSnippets } from './parser/extracts.js';
 import { runner } from './engine/runner.js';
 import { debug, repairSnippet } from './ai/repair.js';
 import { select } from '@inquirer/prompts';
 import { clearCache } from './ai/cache.js';
+import { updateBadge } from './utils/badge.js';
+import { generateCleanFix } from './ai/repair.js';
+import { applyPatch } from './utils/patcher.js';
 
-dotenv.config();
+// ─────────────────────────────────────────────────────────────
+// UI Helpers
+// ─────────────────────────────────────────────────────────────
+
+const ui = {
+    brand: chalk.bold.cyan,
+    success: chalk.green,
+    error: chalk.red,
+    warn: chalk.yellow,
+    info: chalk.blue,
+    dim: chalk.dim,
+    bold: chalk.bold,
+    
+    header: (text: string) => console.log(`\n${chalk.bold.cyan('›')} ${chalk.bold(text)}`),
+    step: (num: number, lang: string) => chalk.dim(`[${num}]`) + chalk.cyan(` ${lang}`),
+    divider: () => console.log(chalk.dim('─'.repeat(50))),
+    
+    pass: () => chalk.bgGreen.black(' PASS '),
+    fail: () => chalk.bgRed.white(' FAIL '),
+};
 
 const program = new Command();
 
 program
   .name('doc-verify')
-  .description('CLI to test documentation code snippets')
+  .description('Verify documentation code snippets')
   .version('0.0.1');
 
 program
   .command('run')
-  .argument('<file>', 'path to the markdown file to test')
-  .option('-l, --lang <language>', 'language to filter (e.g. js, py)')
+  .argument('<file>', 'markdown file to verify')
+  .option('-l, --lang <language>', 'filter by language')
   .action(async (file, options) => {
-    console.log(chalk.blue(`\n🔍 Parsing file: ${file}`));
+    console.log();
+    console.log(ui.brand('  doc-verify'));
+    ui.divider();
+    console.log(ui.dim(`  File: ${file}`));
+    if (options.lang) console.log(ui.dim(`  Filter: ${options.lang}`));
     
-    try {
-        // 1. Extract
-        const allSnippets = extractSnippets(file);
+    let shouldRestart = true;
+    
+    while (shouldRestart) {
+        shouldRestart = false;
         
-        // 2. Filter (if user specified --lang)
-        const targetSnippets = options.lang 
-            ? allSnippets.filter(s => s.language === options.lang)
-            : allSnippets;
+        try {
+            const allSnippets = extractSnippets(file);
+            const targetSnippets = options.lang 
+                ? allSnippets.filter(s => s.language === options.lang)
+                : allSnippets;
 
-        if (targetSnippets.length === 0) {
-            console.log(chalk.yellow('No code snippets found matching your criteria.'));
-            return;
-        }
+            if (targetSnippets.length === 0) {
+                console.log(ui.warn('\n  No snippets found.\n'));
+                return;
+            }
 
-        console.log(chalk.green(`✓ Found ${targetSnippets.length} snippets.\n`));
+            console.log(ui.dim(`  Snippets: ${targetSnippets.length}\n`));
 
-        // 3. Repair all snippets in parallel
-        console.log(chalk.blue.bold(`--- Repairing Snippets ---\n`));
-        const repairedSnippets = await Promise.all(
-            targetSnippets.map(async (snippet, index) => {
-                console.log(chalk.yellow(`🤖 Repairing #${index + 1} [${snippet.language}]...`));
-                const executableCode = await repairSnippet(index + 1, snippet.code, snippet.language);
-                return { index, snippet, executableCode };
-            })
-        );
-
-        // 4. Execute snippets with interactive error handling
-        console.log(chalk.blue.bold(`\n--- Running Repaired Snippets ---\n`));
-        
-        for (let i = 0; i < repairedSnippets.length; i++) {
-            const { index, snippet } = repairedSnippets[i];
-            let executableCode = repairedSnippets[i].executableCode;
+            // Repair phase - run in parallel but collect results silently
+            ui.header('Preparing');
+            process.stdout.write(ui.dim('  Repairing snippets... '));
             
-            let shouldContinue = true;
-            while (shouldContinue) {
-                console.log(chalk.blue(`\n💻 Running snippet #${index + 1} [${snippet.language}]`));
-                const result = await runner(executableCode, snippet.language);
+            const repairedSnippets = await Promise.all(
+                targetSnippets.map(async (snippet, index) => {
+                    const executableCode = await repairSnippet(index + 1, snippet.code, snippet.language);
+                    return { index, snippet, executableCode };
+                })
+            );
+            console.log(ui.success('done'));
+
+            // Execute phase
+            ui.header('Running');
+            let passed = 0;
+            let failed = 0;
+            
+            snippetLoop:
+            for (let i = 0; i < repairedSnippets.length; i++) {
+                const { index, snippet } = repairedSnippets[i];
+                let executableCode = repairedSnippets[i].executableCode;
                 
-                if (result.success) {
-                    console.log(chalk.green('✅ Success!'));
-                    console.log(chalk.gray('Output:\n'), result.output);
-                    shouldContinue = false; // Move to next snippet
-                } else {
-                    console.log(chalk.red('❌ Failed!'));
-                    console.log(chalk.red('Error:'), result.error);
+                let shouldContinue = true;
+                while (shouldContinue) {
+                    process.stdout.write(ui.dim(`  ${index + 1}. ${snippet.language} `));
+                    const result = await runner(executableCode, snippet.language);
                     
-                    const action = await select({
-                        message: `What do you want to do?`,
-                        choices: [
-                            { name: '🔍 View Details', value: 'details' },
-                            { name: '🔄 Retry with AI', value: 'retry' },
-                            { name: '🔄 Clear Cache & Retry', value: 'clear' },
-                            { name: '⏭️  Skip', value: 'skip' },
-                            { name: '🚪 Exit', value: 'exit' }
-                        ]
-                    });
-                    
-                    switch (action) {
-                        case 'details':
-                            console.log(chalk.cyan('\n📝 Original Code:'));
-                            console.log(snippet.code);
-                            console.log(chalk.cyan('\n📝 Repaired Code:'));
-                            console.log(executableCode);
-                            console.log(chalk.cyan('\n📝 Error Output:'));
-                            console.log(result.output || result.error);
-                            const nextAction = await select({
-                                message: `What do you want to do?`,
-                                choices: [
-                                    { name: 'Debug with AI', value: 'debug' },
-                                    { name: 'Back', value: 'back' },
-                                ]
-                            });
-                            if (nextAction === 'debug') {
-                                console.log(chalk.yellow('\n🐞 Invoking AI debugger...'));
-                                const debugInfo = await debug(executableCode, snippet.language);
-                                console.log(debugInfo);
-                            }
-                            else if (nextAction === 'back') {
-                                break;
-                            }
-                            break;
-                            
-                        case 'retry':
-                            console.log(chalk.yellow('\n🤖 Re-invoking AI repair...'));
-                            executableCode = await repairSnippet(index + 1, snippet.code, snippet.language);
-                            // Loop continues, will run again
-                            break;
+                    if (result.success) {
+                        console.log(ui.pass());
+                        if (result.output?.trim()) {
+                            console.log(ui.dim(`     ${result.output.trim().split('\n').join('\n     ')}`));
+                        }
+                        passed++;
+                        shouldContinue = false;
+                    } else {
+                        console.log(ui.fail());
+                        console.log(ui.error(`     ${result.error}`));
+                        failed++;
                         
-                        case 'clear':
-                            console.log(chalk.yellow('\n🗑️  Clearing cache and re-invoking AI repair...'));
-                            clearCache(snippet.code, index + 1);
-                            executableCode = await repairSnippet(index + 1, snippet.code, snippet.language);
-                            // Loop continues, will run again
-                            break;
+                        const action = await select({
+                            message: 'Action',
+                            choices: [
+                                { name: 'Auto-fix', value: 'fix' },
+                                { name: 'Details', value: 'details' },
+                                { name: 'Retry', value: 'retry' },
+                                { name: 'Clear cache', value: 'clear' },
+                                { name: 'Skip', value: 'skip' },
+                                { name: 'Exit', value: 'exit' }
+                            ]
+                        });
+                        
+                        switch (action) {
+                            case 'fix':
+                                console.log(ui.dim('\n  Generating fix...'));
+                                const cleanCode = await generateCleanFix(snippet.code, result.error || 'Unknown Error');
+                                ui.divider();
+                                console.log(cleanCode);
+                                ui.divider();
+                                const confirm = await select({
+                                    message: 'Apply fix?',
+                                    choices: [{name: 'Yes', value: true}, {name: 'No', value: false}]
+                                });
+                                if (confirm) {
+                                    applyPatch(file, snippet.line, snippet.code, cleanCode);
+                                    console.log(ui.success('  Applied.\n'));
+                                    shouldRestart = true;
+                                    break snippetLoop;
+                                }
+                                break;
+                                
+                            case 'details':
+                                console.log(ui.dim('\n  ── Original ──'));
+                                console.log(snippet.code);
+                                console.log(ui.dim('\n  ── Repaired ──'));
+                                console.log(executableCode);
+                                console.log(ui.dim('\n  ── Error ──'));
+                                console.log(result.output || result.error);
+                                const nextAction = await select({
+                                    message: 'Action',
+                                    choices: [
+                                        { name: 'Debug with AI', value: 'debug' },
+                                        { name: 'Back', value: 'back' },
+                                    ]
+                                });
+                                if (nextAction === 'debug') {
+                                    console.log(ui.dim('\n  Analyzing...\n'));
+                                    const errorOutput = result.output || result.error || 'Unknown error';
+                                    const debugInfo = await debug(snippet.code, executableCode, errorOutput, snippet.language);
+                                    console.log(debugInfo);
+                                }
+                                break;
+                                
+                            case 'retry':
+                                shouldRestart = true;
+                                break snippetLoop;
                             
-                        case 'skip':
-                            console.log(chalk.yellow('Skipping...'));
-                            shouldContinue = false;
-                            break;
-                            
-                        case 'exit':
-                            console.log(chalk.blue('👋 Exiting.'));
-                            process.exit(0);
+                            case 'clear':
+                                clearCache(snippet.code);
+                                console.log(ui.dim('  Cache cleared.'));
+                                shouldRestart = true;
+                                break snippetLoop;
+                                
+                            case 'skip':
+                                shouldContinue = false;
+                                break;
+                                
+                            case 'exit':
+                                process.exit(0);
+                        }
                     }
                 }
             }
+            
+            // Summary
+            if (!shouldRestart) {
+                ui.divider();
+                if (failed === 0) {
+                    updateBadge(file);
+                    console.log(ui.success(`  ✓ ${passed} passed`));
+                } else {
+                    console.log(`  ${ui.success(`${passed} passed`)} ${ui.error(`${failed} failed`)}`);
+                }
+                console.log();
+            }
+            
+        } catch (err: any) {
+            console.error(ui.error(`\n  Error: ${err.message}\n`));
+            shouldRestart = false;
         }
-        
-    } catch (err: any) {
-        console.error(chalk.red(`Error: ${err.message}`));
-    } finally {
-        console.log(chalk.blue('\n🏁 Done.\n'));
     }
   });
-  
 
 program
   .command('clear')
-  .description('Clear the AI repair cache')
-  .option('-s, --snippet <snippet>', 'Clear cache for a specific code snippet')
+  .description('Clear cache')
   .action(() => {
     clearCache();
+    console.log(ui.success('  Cache cleared.\n'));
   });
-
-program
-  .command('lint')
-  .description('Lint command (to be implemented)')
-  .action(() => {
-    console.log(chalk.yellow('Lint command is not yet implemented.'));
-  });
-  
 
 program.parse();

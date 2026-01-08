@@ -24,11 +24,11 @@ export function extractSnippets(filePath: string): Snippet[] {
 
     const snippets: Snippet[] = [];
 
-    // 2. Parse Markdown into an AST (Tree)
+    // 2. Parse Markdown into an AST (Tree). AST = Abstract Syntax Tree
     const tree = unified()
         .use(remarkParse)
         .parse(fileContent);
-    // unified() creates a processor
+    // unified() creates a processor to which we can add plugins
     // .use(remarkParse) adds the markdown parser plugin
     // .parse(fileContent) parses the markdown content into an AST
 

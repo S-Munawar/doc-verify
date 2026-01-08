@@ -18,12 +18,16 @@ class OutputStream extends Writable {
     private data: string[] = [];
 
     _write(chunk: any, encoding: string, callback: () => void) {
-        this.data.push(chunk.toString());
+        // Docker multiplex stream has 8-byte headers; strip control characters
+        let text = chunk.toString();
+        // Remove Docker stream header bytes and control characters
+        text = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+        this.data.push(text);
         callback();
     }
 
     getOutput(): string {
-        return this.data.join('');
+        return this.data.join('').trim();
     }
 }
 
@@ -107,26 +111,16 @@ export abstract class BaseRunner {
 
         if (exists) return;
 
-        console.log(`⬇️  Pulling Docker image ${imageName}... (this happens once)`);
-
         await new Promise((resolve, reject) => {
             docker.pull(imageName, (err: any, stream: any) => {
                 if (err) return reject(err);
-                docker.modem.followProgress(stream, onFinished, onProgress);
+                docker.modem.followProgress(stream, onFinished);
 
                 function onFinished(err: any, output: any) {
                     if (err) return reject(err);
                     resolve(output);
                 }
-                function onProgress(event: any) {
-                    while (event) {
-                        console.log(".");
-                        break;
-                    }
-                }
             });
         });
-
-        console.log('✅ Image downloaded.');
     }
 }

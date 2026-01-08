@@ -1,0 +1,43 @@
+name: Verify Docs
+
+on: 
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  doc-verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # <--- CRITICAL: Allows the bot to push changes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Run your tool (assuming you published it, or use local path)
+      - name: Run DocVerify
+        uses: ./ # or your-username/doc-verify@v1
+        with:
+          file: 'README.md'
+          language: 'javascript'
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          openai_api_base_url: ${{ secrets.OPENAI_BASE_URL }}
+          openai_model_name: ${{ secrets.OPENAI_MODEL_NAME }}
+          # You might need to add a 'badge: true' input to your action.yml
+
+      # COMMIT THE CHANGE BACK
+      - name: Commit Badge Update
+        # Only run if the previous step succeeded and modified the file
+        if: success()
+        run: |
+          git config --global user.name 'DocVerify Bot'
+          git config --global user.email 'bot@docverify.com'
+          
+          # Check if README was actually modified
+          if [[ `git status --porcelain README.md` ]]; then
+            git add README.md
+            git commit -m "docs: update verification badge [skip ci]"
+            git push
+          else
+            echo "No changes to badge."
+          fi
