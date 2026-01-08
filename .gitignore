@@ -10,3 +10,5 @@ node_modules/
 
 .npmignore
 .npmrc
+
+.docverify-cache.json
